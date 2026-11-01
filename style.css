@@ -73,6 +73,14 @@ button {
   gap: 14px;
 }
 
+.brand-logo-image {
+  width: 52px;
+  height: 52px;
+  flex: 0 0 52px;
+  object-fit: contain;
+  display: block;
+}
+
 .brand-logo {
   width: 52px;
   height: 52px;
@@ -802,6 +810,8 @@ textarea:focus {
     gap: 9px;
   }
 
+  .brand-logo-image { width: 42px; height: 42px; flex-basis: 42px; }
+
   .brand-logo {
     width: 42px;
     height: 42px;
@@ -1120,6 +1130,7 @@ label:has(#officeFilter) {
     padding: 7px 11px;
   }
   .brand { gap: 7px; }
+  .brand-logo-image { width: 34px; height: 34px; flex-basis: 34px; }
   .brand-logo {
     width: 34px;
     height: 34px;
