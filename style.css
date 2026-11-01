@@ -1415,3 +1415,19 @@ label:has(#officeFilter) {
     display: none !important;
   }
 }
+
+/* DESKTOP: Reduce DSWD header logo size */
+@media (min-width: 769px) {
+  .brand-logo-image {
+    width: 90px !important;
+    height: 90px !important;
+    max-width: 90px !important;
+    object-fit: contain !important;
+  }
+
+  .brand-logo {
+    width: 90px !important;
+    height: 90px !important;
+    flex: 0 0 90px !important;
+  }
+}
