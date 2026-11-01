@@ -1279,3 +1279,94 @@ label:has(#officeFilter) {
   .month-controls button { width: 24px; height: 24px; }
   .form-row { grid-template-columns: 1fr; }
 }
+
+/* =========================================================
+   FINAL VISUAL REFINEMENT: stronger blue/red KPIs + less clutter
+   Desktop structure remains unchanged; mobile stays compact.
+   ========================================================= */
+:root {
+  --green-900: #12345b;
+  --green-800: #174a7e;
+  --green-700: #1d5fa3;
+  --green-600: #2563eb;
+  --accent-red: #dc2626;
+  --accent-red-soft: #fff1f2;
+}
+
+/* Stronger KPI cards: clear color identity and stronger contrast */
+.summary-card {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid #d7e3f2;
+  border-left: 5px solid #2563eb;
+  background: linear-gradient(145deg, #ffffff 0%, #eff6ff 100%);
+  box-shadow: 0 5px 16px rgba(29, 78, 216, .10);
+}
+.summary-card:nth-child(2) {
+  border-left-color: #dc2626;
+  background: linear-gradient(145deg, #ffffff 0%, #fff1f2 100%);
+  box-shadow: 0 5px 16px rgba(220, 38, 38, .10);
+}
+.summary-card:nth-child(3) {
+  border-left-color: #0f766e;
+  background: linear-gradient(145deg, #ffffff 0%, #f0fdfa 100%);
+}
+.summary-card:nth-child(4) {
+  border-left-color: #b91c1c;
+  background: linear-gradient(145deg, #ffffff 0%, #fef2f2 100%);
+}
+.summary-card strong {
+  color: #12345b;
+  font-size: 32px;
+  font-weight: 800;
+  line-height: 1.05;
+}
+.summary-card:nth-child(2) strong,
+.summary-card:nth-child(4) strong { color: #b91c1c; }
+.summary-card:nth-child(3) strong { color: #0f766e; }
+.summary-label { color: #334155; font-weight: 800; }
+
+/* Red is used consistently for cancellation, destructive and warning states */
+.status-cancelled,
+.status-canceled,
+.badge-cancelled,
+.event-cancelled { color: #b91c1c !important; }
+.btn-danger,
+.delete-btn,
+.cancelled-indicator {
+  background-color: #dc2626;
+  border-color: #dc2626;
+  color: #fff;
+}
+
+/* Remove secondary explanatory captions that consume dashboard space */
+.summary-note,
+.welcome-row p,
+.panel-heading p,
+.side-card-heading p,
+.modal-heading p,
+.activity-hint,
+.activity-instruction,
+.click-hint,
+.click-instruction,
+.dashboard-caption,
+.section-caption,
+.panel-caption {
+  display: none !important;
+}
+
+/* Mobile KPI cards remain compact but visually prominent */
+@media (max-width: 600px) {
+  .summary-card {
+    min-height: 76px;
+    padding: 10px 11px;
+    border-left-width: 4px;
+    box-shadow: 0 3px 10px rgba(15, 23, 42, .09);
+  }
+  .summary-card strong { font-size: 23px; }
+  .summary-label { font-size: 8px; letter-spacing: .35px; }
+}
+@media (max-width: 380px) {
+  .summary-card { min-height: 68px; padding: 8px; }
+  .summary-card strong { font-size: 20px; }
+}
