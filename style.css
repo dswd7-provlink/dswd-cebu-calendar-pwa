@@ -1381,3 +1381,37 @@ label:has(#officeFilter) {
   .summary-card { min-height: 68px; padding: 8px; }
   .summary-card strong { font-size: 20px; }
 }
+
+/* MOBILE: Compact KPI cards in one horizontal row */
+@media (max-width: 600px) {
+  .summary-grid {
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 5px !important;
+    margin-bottom: 10px !important;
+  }
+
+  .summary-card {
+    min-width: 0 !important;
+    min-height: 54px !important;
+    padding: 6px 3px !important;
+    border-radius: 9px !important;
+    gap: 3px !important;
+  }
+
+  .summary-label {
+    font-size: 7px !important;
+    letter-spacing: 0 !important;
+    line-height: 1.1 !important;
+    text-align: center !important;
+  }
+
+  .summary-card strong {
+    font-size: 17px !important;
+    line-height: 1 !important;
+  }
+
+  .summary-note {
+    display: none !important;
+  }
+}
