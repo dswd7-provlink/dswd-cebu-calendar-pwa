@@ -24,7 +24,6 @@ let selectedActivity = null;
 let selectedOffice = '';
 let selectedCluster = '';
 let selectedMunicipality = '';
-let accessCode = sessionStorage.getItem('calendarAccessCode') || '';
 
 const $ = id => document.getElementById(id);
 
@@ -113,16 +112,10 @@ function updateClock() {
 ========================================================= */
 
 async function apiRequest(action, args = []) {
-  if (!accessCode) {
-    openAccessModal();
-    throw new Error('Access code required.');
-  }
-
   const response = await fetch(API_URL, {
     method: 'POST',
     headers: {
-      'Content-Type': 'text/plain;charset=utf-8',
-      'X-Calendar-Access': accessCode
+      'Content-Type': 'text/plain;charset=utf-8'
     },
     body: JSON.stringify({
       action,
@@ -147,24 +140,13 @@ async function apiRequest(action, args = []) {
   return result;
 }
 
-function openAccessModal() {
-  $('accessModal').classList.add('show');
-  $('accessCode').focus();
-}
-
-function closeAccessModal() {
-  $('accessModal').classList.remove('show');
-}
 
 async function checkConnection() {
   try {
     const result = await apiRequest('ping');
     setConnection('connected', 'API Connected');
-    closeAccessModal();
     return result;
   } catch (error) {
-    if (error.message.includes('Access code required')) return;
-
     setConnection('error', 'Connection failed');
     console.error(error);
     throw error;
@@ -900,26 +882,6 @@ function bindEvents() {
     if (button) performActivityAction(button.dataset.action);
   });
 
-  $('accessForm').addEventListener('submit', async event => {
-    event.preventDefault();
-
-    const code = $('accessCode').value.trim();
-    if (!code) return;
-
-    accessCode = code;
-
-    try {
-      await checkConnection();
-      sessionStorage.setItem('calendarAccessCode', code);
-      $('accessCode').value = '';
-      await loadLocations();
-      await loadActivities();
-    } catch (error) {
-      accessCode = '';
-      sessionStorage.removeItem('calendarAccessCode');
-      $('accessError').textContent = 'Access denied or connection failed. Please check your code.';
-    }
-  });
 }
 
 /* =========================================================
@@ -933,20 +895,13 @@ async function initializeApp() {
 
   selectedDate = isoDate(new Date());
 
-  if (!accessCode) {
-    openAccessModal();
-    return;
-  }
-
   try {
     await checkConnection();
     await loadLocations();
     await loadActivities();
   } catch (error) {
     console.error('Initialization error:', error);
-    openAccessModal();
   }
 }
 
 document.addEventListener('DOMContentLoaded', initializeApp);
-
