@@ -1,14 +1,358 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#ffffff">
-  <title>DSWD Central Visayas Activity Calendar</title>
+  <meta name="theme-color" content="#166534">
+  <meta name="description" content="DSWD Central Visayas Cebu Cluster 1 and 2 Activity Calendar">
+  <title>DSWD Cebu Activity Calendar</title>
+
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
+
 <body>
-  <h1>DSWD Central Visayas</h1>
-  <h2>Cebu Cluster 1 &amp; 2 Activity Calendar</h2>
-  <p>Progressively preparing the new Activity Calendar PWA.</p>
+
+  <header class="top-header">
+    <div class="brand">
+      <div class="brand-logo">DSWD</div>
+      <div>
+        <h1>DSWD CENTRAL VISAYAS</h1>
+        <p>CEBU CLUSTER 1 &amp; 2 ACTIVITY CALENDAR</p>
+      </div>
+    </div>
+
+    <div class="header-right">
+      <div class="clock">
+        <strong id="liveTime">--:--:--</strong>
+        <span id="liveDate">PHILIPPINE STANDARD TIME</span>
+      </div>
+      <button class="btn-primary" id="addActivityBtn">＋ Add Activity</button>
+    </div>
+  </header>
+
+  <main class="app-container">
+
+    <section class="welcome-row">
+      <div>
+        <h2>Activity Calendar</h2>
+        <p>Monitor and manage activities across Cebu Cluster 1 and 2.</p>
+      </div>
+
+      <div class="connection-status" id="connectionStatus">
+        <span class="status-indicator"></span>
+        <span id="connectionText">Connecting...</span>
+      </div>
+    </section>
+
+    <section class="summary-grid">
+      <article class="summary-card">
+        <span class="summary-label">TOTAL ACTIVITIES</span>
+        <strong id="totalCount">0</strong>
+        <span class="summary-note">All recorded activities</span>
+      </article>
+
+      <article class="summary-card">
+        <span class="summary-label">SCHEDULED</span>
+        <strong id="scheduledCount">0</strong>
+        <span class="summary-note">Upcoming and ongoing</span>
+      </article>
+
+      <article class="summary-card">
+        <span class="summary-label">COMPLETED</span>
+        <strong id="completedCount">0</strong>
+        <span class="summary-note">Successfully accomplished</span>
+      </article>
+
+      <article class="summary-card">
+        <span class="summary-label">CANCELLED</span>
+        <strong id="cancelledCount">0</strong>
+        <span class="summary-note">Cancelled activities</span>
+      </article>
+    </section>
+
+    <section class="filter-panel">
+      <div class="filter-heading">
+        <h3>Activity Filters</h3>
+        <button id="resetFiltersBtn" class="btn-text">Reset filters</button>
+      </div>
+
+      <div class="filter-controls">
+        <label>
+          Cluster
+          <select id="clusterFilter">
+            <option value="">All Clusters</option>
+            <option value="CLUSTER 1">Cluster 1</option>
+            <option value="CLUSTER 2">Cluster 2</option>
+          </select>
+        </label>
+
+        <label>
+          Municipality / City
+          <select id="municipalityFilter">
+            <option value="">All Municipalities</option>
+          </select>
+        </label>
+
+        <label>
+          Responsible Office
+          <select id="officeFilter">
+            <option value="">All Offices</option>
+            <option value="PANTAWID">PANTAWID</option>
+            <option value="KALAHI">KALAHI</option>
+            <option value="SLP">SLP</option>
+            <option value="WALANG GUTOM">WALANG GUTOM</option>
+            <option value="CONVERGENCE">CONVERGENCE</option>
+            <option value="AICS">AICS</option>
+            <option value="SOCIAL PENSION">SOCIAL PENSION</option>
+          </select>
+        </label>
+      </div>
+    </section>
+
+    <div class="main-layout">
+
+      <section class="calendar-panel">
+        <div class="panel-heading">
+          <div>
+            <h3>Monthly Schedule</h3>
+            <p>Click an activity to view its details.</p>
+          </div>
+
+          <div class="month-controls">
+            <button id="prevMonthBtn" aria-label="Previous month">‹</button>
+            <strong id="monthTitle">Loading...</strong>
+            <button id="nextMonthBtn" aria-label="Next month">›</button>
+            <button id="todayBtn" class="today-btn">Today</button>
+          </div>
+        </div>
+
+        <div class="calendar-scroll">
+          <div class="calendar-grid">
+            <div class="weekday">SUN</div>
+            <div class="weekday">MON</div>
+            <div class="weekday">TUE</div>
+            <div class="weekday">WED</div>
+            <div class="weekday">THU</div>
+            <div class="weekday">FRI</div>
+            <div class="weekday">SAT</div>
+          </div>
+
+          <div id="calendarGrid" class="calendar-grid calendar-days">
+            <div class="loading-message">Loading calendar...</div>
+          </div>
+        </div>
+
+        <div class="calendar-legend">
+          <span><i class="legend-dot pantawid"></i>PANTAWID</span>
+          <span><i class="legend-dot kalahi"></i>KALAHI</span>
+          <span><i class="legend-dot slp"></i>SLP</span>
+          <span><i class="legend-dot gutom"></i>WALANG GUTOM</span>
+          <span><i class="legend-dot convergence"></i>CONVERGENCE</span>
+          <span><i class="legend-dot aics"></i>AICS</span>
+          <span><i class="legend-dot pension"></i>SOCIAL PENSION</span>
+        </div>
+      </section>
+
+      <aside class="side-panel">
+
+        <section class="side-card">
+          <div class="side-card-heading">
+            <div>
+              <h3>Selected Day</h3>
+              <p id="selectedDateLabel">Select a calendar date</p>
+            </div>
+          </div>
+          <div id="dailyActivities" class="activity-list">
+            <div class="empty-state">Select a date to view activities.</div>
+          </div>
+        </section>
+
+        <section class="side-card convergence-card">
+          <div class="side-card-heading">
+            <div>
+              <h3>Upcoming Convergence</h3>
+              <p>Next scheduled convergence activities</p>
+            </div>
+          </div>
+          <div id="upcomingList" class="activity-list">
+            <div class="empty-state">Loading activities...</div>
+          </div>
+        </section>
+
+        <section class="side-card">
+          <div class="side-card-heading">
+            <div>
+              <h3>Completed Activities</h3>
+              <p>Accomplished activities</p>
+            </div>
+            <button id="showCompletedBtn" class="btn-text">View all</button>
+          </div>
+          <div id="recentCompleted" class="activity-list">
+            <div class="empty-state">No completed activities yet.</div>
+          </div>
+        </section>
+
+      </aside>
+    </div>
+
+    <section class="office-filter-panel">
+      <div class="office-filter-heading">
+        <strong>FILTER BY OFFICE</strong>
+        <span>Swipe to see all offices</span>
+      </div>
+
+      <nav id="officeTabs" class="office-tabs" aria-label="Office filters">
+        <button class="office-tab active" data-office="">ALL</button>
+        <button class="office-tab" data-office="PANTAWID">PANTAWID</button>
+        <button class="office-tab" data-office="KALAHI">KALAHI</button>
+        <button class="office-tab" data-office="SLP">SLP</button>
+        <button class="office-tab" data-office="WALANG GUTOM">WALANG GUTOM</button>
+        <button class="office-tab" data-office="CONVERGENCE">CONVERGENCE</button>
+        <button class="office-tab" data-office="AICS">AICS</button>
+        <button class="office-tab" data-office="SOCIAL PENSION">SOCIAL PENSION</button>
+      </nav>
+    </section>
+
+  </main>
+
+  <footer class="app-footer">
+    DSWD CENTRAL VISAYAS | CEBU CLUSTER 1 &amp; 2
+    <span>Activity Calendar Management System</span>
+  </footer>
+
+  <!-- Activity Form -->
+  <div id="activityModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-heading">
+        <div>
+          <h2 id="modalTitle">Add Activity</h2>
+          <p>Enter the activity details below.</p>
+        </div>
+        <button id="closeModalBtn" class="close-btn" aria-label="Close">×</button>
+      </div>
+
+      <form id="activityForm">
+        <input type="hidden" id="activityId">
+
+        <label>
+          Activity Title
+          <input type="text" id="activityTitle" required>
+        </label>
+
+        <div class="form-row">
+          <label>
+            Start Date
+            <input type="date" id="activityDate" required>
+          </label>
+
+          <label>
+            End Date
+            <input type="date" id="activityEndDate">
+          </label>
+        </div>
+
+        <div class="form-row">
+          <label>
+            Cluster
+            <select id="activityCluster" required>
+              <option value="">Select Cluster</option>
+              <option value="CLUSTER 1">Cluster 1</option>
+              <option value="CLUSTER 2">Cluster 2</option>
+            </select>
+          </label>
+
+          <label>
+            Municipality / City
+            <select id="activityMunicipality" required>
+              <option value="">Select Municipality</option>
+            </select>
+          </label>
+        </div>
+
+        <label>
+          Responsible Office
+          <select id="activityOffice" required>
+            <option value="">Select Office</option>
+            <option value="PANTAWID">PANTAWID</option>
+            <option value="KALAHI">KALAHI</option>
+            <option value="SLP">SLP</option>
+            <option value="WALANG GUTOM">WALANG GUTOM</option>
+            <option value="CONVERGENCE">CONVERGENCE</option>
+            <option value="AICS">AICS</option>
+            <option value="SOCIAL PENSION">SOCIAL PENSION</option>
+          </select>
+        </label>
+
+        <label>
+          Remarks
+          <textarea id="activityRemarks" rows="3"></textarea>
+        </label>
+
+        <div class="modal-actions">
+          <button type="button" id="cancelModalBtn" class="btn-secondary">Cancel</button>
+          <button type="submit" id="saveActivityBtn" class="btn-primary">Save Activity</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Activity Details -->
+  <div id="detailsModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-heading">
+        <div>
+          <h2>Activity Details</h2>
+          <p>View and manage this activity.</p>
+        </div>
+        <button id="closeDetailsBtn" class="close-btn" aria-label="Close">×</button>
+      </div>
+
+      <div id="activityDetails"></div>
+      <div id="activityActions" class="modal-actions"></div>
+    </div>
+  </div>
+
+  <!-- Completed Activities -->
+  <div id="completedModal" class="modal">
+    <div class="modal-content modal-wide">
+      <div class="modal-heading">
+        <div>
+          <h2>Completed Activities</h2>
+          <p>List of accomplished activities.</p>
+        </div>
+        <button id="closeCompletedBtn" class="close-btn" aria-label="Close">×</button>
+      </div>
+      <div id="completedList" class="activity-list"></div>
+    </div>
+  </div>
+
+  <!-- Access Code Dialog -->
+  <div id="accessModal" class="modal">
+    <div class="modal-content access-content">
+      <div class="modal-heading">
+        <div>
+          <h2>Calendar Access</h2>
+          <p>Enter your authorized access code.</p>
+        </div>
+      </div>
+      <form id="accessForm">
+        <label>
+          Access Code
+          <input type="password" id="accessCode" autocomplete="current-password" required>
+        </label>
+        <button type="submit" class="btn-primary block-button">Continue</button>
+        <p id="accessError" class="error-message"></p>
+      </form>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script src="app.js"></script>
 </body>
 </html>
