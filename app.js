@@ -1,3 +1,4 @@
+
 /* =========================================================
    DSWD CEBU CLUSTER 1 & 2 ACTIVITY CALENDAR PWA
    Frontend application
@@ -16,12 +17,11 @@ const CLUSTER_COLORS = {
 };
 
 let activities = [];
-let locations = {};
+let focalList = [];
 let currentMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 let selectedDate = '';
 let selectedActivity = null;
 let selectedCluster = '';
-let selectedMunicipality = '';
 
 const $ = id => document.getElementById(id);
 
@@ -138,6 +138,7 @@ async function apiRequest(action, args = []) {
   return result;
 }
 
+
 async function checkConnection() {
   try {
     const result = await apiRequest('ping');
@@ -175,15 +176,28 @@ async function loadActivities() {
   }
 }
 
-async function loadLocations() {
+async function loadFocals() {
   try {
-    const result = await apiRequest('getLocationData');
+    const result = await apiRequest('getFocalList');
+    focalList = Array.isArray(result.data)
+      ? result.data
+      : Array.isArray(result.result)
+        ? result.result
+        : Array.isArray(result)
+          ? result
+          : [];
 
-    locations = result.data || result.result || result || {};
-
-    populateMunicipalities();
+    const select = $('activityResponsibleFocal');
+    select.innerHTML =
+      '<option value="">Select Responsible Focal</option>' +
+      focalList.map(name =>
+        `<option value="${escapeHTML(name)}">${escapeHTML(name)}</option>`
+      ).join('');
   } catch (error) {
-    console.error('Location loading error:', error);
+    console.error('Focal list loading error:', error);
+    $('activityResponsibleFocal').innerHTML =
+      '<option value="">Unable to load focal list</option>';
+    showToast('Unable to load Responsible Focal list.');
   }
 }
 
@@ -194,56 +208,8 @@ async function loadLocations() {
 function getFilteredActivities() {
   return activities.filter(activity => {
     const cluster = String(activity.cluster || '').toUpperCase();
-    const municipality = String(activity.municipality || '');
-
-    return (
-      (!selectedCluster || cluster === selectedCluster) &&
-      (!selectedMunicipality || municipality === selectedMunicipality)
-    );
+    return !selectedCluster || cluster === selectedCluster;
   });
-}
-
-function populateFormMunicipalities(clusterKey, selectedValue = '') {
-  const formSelect = $('activityMunicipality');
-  const list = Array.isArray(locations[String(clusterKey || '').toUpperCase()])
-    ? locations[String(clusterKey || '').toUpperCase()]
-    : [];
-
-  formSelect.innerHTML =
-    '<option value="">Select Municipality</option>' +
-    [...new Set(list)].sort().map(item =>
-      `<option value="${escapeHTML(item)}">${escapeHTML(item)}</option>`
-    ).join('');
-
-  if (list.includes(selectedValue)) formSelect.value = selectedValue;
-}
-
-function populateMunicipalities() {
-  const select = $('municipalityFilter');
-
-  const previousFilter = selectedMunicipality;
-  const clusterKey = selectedCluster;
-  let list = [];
-
-  if (clusterKey && Array.isArray(locations[clusterKey])) {
-    list = locations[clusterKey];
-  } else {
-    list = Object.values(locations).flat();
-  }
-
-  list = [...new Set(list)].sort();
-
-  select.innerHTML =
-    '<option value="">All Municipalities</option>' +
-    list.map(item =>
-      `<option value="${escapeHTML(item)}">${escapeHTML(item)}</option>`
-    ).join('');
-
-  if (list.includes(previousFilter)) {
-    select.value = previousFilter;
-  } else {
-    selectedMunicipality = '';
-  }
 }
 
 /* =========================================================
@@ -407,7 +373,7 @@ function renderDailyActivities() {
          data-activity-id="${escapeHTML(activity.id)}">
       <h4>${escapeHTML(activity.title)}</h4>
       <div class="activity-meta">
-        ${escapeHTML(activity.cluster)} · ${escapeHTML(activity.municipality)}
+        ${escapeHTML(activity.cluster)}
       </div>
       <div class="activity-meta">
         ${escapeHTML(prettyDate(activity.startDate || activity.date))}
@@ -424,8 +390,9 @@ function renderDailyActivities() {
     </div>
   `).join('');
 }
+
 /* =========================================================
-   UPCOMING ACTIVITIES
+   UPCOMING CONVERGENCE
 ========================================================= */
 
 function renderUpcoming() {
@@ -451,7 +418,7 @@ function renderUpcoming() {
             ${escapeHTML(prettyDate(activity.startDate || activity.date))}
           </div>
           <div class="activity-meta">
-            ${escapeHTML(activity.municipality)}
+            
           </div>
         </div>
       `).join('')
@@ -486,7 +453,7 @@ function renderCompleted() {
           <h4>${escapeHTML(activity.title)}</h4>
           <div class="activity-meta">
             ${escapeHTML(prettyDate(activity.date))}
-            · ${escapeHTML(activity.municipality)}
+            · 
           </div>
           <div class="activity-meta">${escapeHTML(activity.cluster)}</div>
         </div>
@@ -512,7 +479,6 @@ function renderAll() {
 
 function openActivityModal(activity = null) {
   selectedActivity = activity;
-
   $('activityForm').reset();
 
   $('activityId').value = activity ? activity.id : '';
@@ -526,20 +492,11 @@ function openActivityModal(activity = null) {
     $('activityResponsibleFocal').value = activity.responsibleFocal || '';
     $('activitySpecialOrder').value =
       String(activity.specialOrderRequired || 'NO').toUpperCase();
-
-    $('activityBarangay').value = activity.barangay || '';
-    $('activityVenue').value = activity.venue || '';
     $('activityDescription').value = activity.description || '';
-
-    populateFormMunicipalities(
-      activity.cluster,
-      activity.municipality || ''
-    );
-
     $('activityRemarks').value = activity.remarks || '';
   } else {
     $('activityDate').value = isoDate(new Date());
-    populateFormMunicipalities($('activityCluster').value);
+    $('activitySpecialOrder').value = 'NO';
   }
 
   $('activityModal').classList.add('show');
@@ -560,11 +517,8 @@ async function saveActivity(event) {
     date: $('activityDate').value,
     endDate: $('activityEndDate').value,
     cluster: $('activityCluster').value,
-    responsibleFocal: $('activityResponsibleFocal').value.trim(),
+    responsibleFocal: $('activityResponsibleFocal').value,
     specialOrderRequired: $('activitySpecialOrder').value,
-    municipality: $('activityMunicipality').value,
-    barangay: $('activityBarangay').value.trim(),
-    venue: $('activityVenue').value.trim(),
     description: $('activityDescription').value.trim(),
     remarks: $('activityRemarks').value.trim()
   };
@@ -602,10 +556,7 @@ async function saveActivity(event) {
 ========================================================= */
 
 function openDetails(id) {
-  const activity = activities.find(
-    a => String(a.id) === String(id)
-  );
-
+  const activity = activities.find(a => String(a.id) === String(id));
   if (!activity) return;
 
   selectedActivity = activity;
@@ -616,36 +567,18 @@ function openDetails(id) {
 
       <p><strong>Activity ID:</strong> ${escapeHTML(activity.id)}</p>
       <p><strong>Date:</strong> ${escapeHTML(prettyDate(activity.date))}</p>
-
-      ${activity.endDate
-        ? `<p><strong>End Date:</strong> ${escapeHTML(prettyDate(activity.endDate))}</p>`
-        : ''}
-
+      ${activity.endDate ? `<p><strong>End Date:</strong> ${escapeHTML(prettyDate(activity.endDate))}</p>` : ''}
       <p><strong>Cluster:</strong> ${escapeHTML(activity.cluster)}</p>
-      <p><strong>Municipality:</strong> ${escapeHTML(activity.municipality)}</p>
-      <p><strong>Responsible Focal:</strong>
-        ${escapeHTML(activity.responsibleFocal || 'Not specified')}
-      </p>
-      <p><strong>Special Order Required:</strong>
-        ${escapeHTML(activity.specialOrderRequired || 'NO')}
-      </p>
-      <p><strong>Barangay:</strong>
-        ${escapeHTML(activity.barangay || 'Not specified')}
-      </p>
-      <p><strong>Venue:</strong>
-        ${escapeHTML(activity.venue || 'Not specified')}
-      </p>
-      <p><strong>Description:</strong>
-        ${escapeHTML(activity.description || 'None')}
-      </p>
+      <p><strong>Municipality:</strong> </p>
+      <p><strong>Responsible Focal:</strong> ${escapeHTML(activity.responsibleFocal || 'Not specified')}</p>
+      <p><strong>Special Order Required:</strong> ${escapeHTML(activity.specialOrderRequired || 'NO')}</p>
+                  <p><strong>Description:</strong> ${escapeHTML(activity.description || 'None')}</p>
       <p><strong>Status:</strong>
         <span class="status-badge ${statusClass(activity.status)}">
           ${escapeHTML(activity.status)}
         </span>
       </p>
-      <p><strong>Remarks:</strong>
-        ${escapeHTML(activity.remarks || 'None')}
-      </p>
+      <p><strong>Remarks:</strong> ${escapeHTML(activity.remarks || 'None')}</p>
     </div>
   `;
 
@@ -657,25 +590,25 @@ function renderActivityActions(activity) {
   const actions = [];
 
   if (activity.status !== 'CANCELLED') {
-    actions.push('<button class="btn-secondary" data-action="edit">Edit</button>');
-    actions.push('<button class="btn-secondary" data-action="reschedule">Reschedule</button>');
+    actions.push(`<button class="btn-secondary" data-action="edit">Edit</button>`);
+    actions.push(`<button class="btn-secondary" data-action="reschedule">Reschedule</button>`);
   }
 
   if (activity.status === 'SCHEDULED' || activity.status === 'MOVED') {
-    actions.push('<button class="btn-primary" data-action="done">Mark Done</button>');
-    actions.push('<button class="btn-secondary" data-action="cancel">Cancel Activity</button>');
+    actions.push(`<button class="btn-primary" data-action="done">Mark Done</button>`);
+    actions.push(`<button class="btn-secondary" data-action="cancel">Cancel Activity</button>`);
   }
 
   if (activity.status === 'DONE') {
-    actions.push('<button class="btn-secondary" data-action="reopen">Reopen</button>');
+    actions.push(`<button class="btn-secondary" data-action="reopen">Reopen</button>`);
   }
 
   if (activity.status === 'CANCELLED') {
-    actions.push('<button class="btn-primary" data-action="restore">Restore</button>');
+    actions.push(`<button class="btn-primary" data-action="restore">Restore</button>`);
   }
 
-  actions.push('<button class="btn-secondary" data-action="history">View History</button>');
-  actions.push('<button class="btn-secondary" data-action="delete">Delete</button>');
+  actions.push(`<button class="btn-secondary" data-action="history">View History</button>`);
+  actions.push(`<button class="btn-secondary" data-action="delete">Delete</button>`);
 
   $('activityActions').innerHTML = actions.join('');
 }
@@ -724,11 +657,7 @@ async function performActivityAction(action) {
     }
 
     if (action === 'reschedule') {
-      const newDate = prompt(
-        'New start date (YYYY-MM-DD):',
-        activity.startDate || activity.date
-      );
-
+      const newDate = prompt('New start date (YYYY-MM-DD):', activity.startDate || activity.date);
       if (!newDate) return;
 
       const newEndDate = prompt(
@@ -747,10 +676,7 @@ async function performActivityAction(action) {
     }
 
     if (action === 'delete') {
-      if (!confirm('Permanently delete this activity? This cannot be undone.')) {
-        return;
-      }
-
+      if (!confirm('Permanently delete this activity? This cannot be undone.')) return;
       result = await apiRequest('deleteActivity', [id]);
     }
 
@@ -765,7 +691,6 @@ async function performActivityAction(action) {
           `${item.timestamp}\n${item.action}\n${item.remarks}`
         ).join('\n\n----------------\n\n'));
       }
-
       return;
     }
 
@@ -780,20 +705,18 @@ async function performActivityAction(action) {
     console.error(error);
   }
 }
+
 /* =========================================================
    EVENT LISTENERS
 ========================================================= */
 
 function bindEvents() {
   $('addActivityBtn').addEventListener('click', () => openActivityModal());
-
   $('closeModalBtn').addEventListener('click', closeActivityModal);
   $('cancelModalBtn').addEventListener('click', closeActivityModal);
-
   $('activityForm').addEventListener('submit', saveActivity);
 
   $('closeDetailsBtn').addEventListener('click', closeDetailsModal);
-
   $('closeCompletedBtn').addEventListener('click', () => {
     $('completedModal').classList.remove('show');
   });
@@ -806,43 +729,21 @@ function bindEvents() {
   $('nextMonthBtn').addEventListener('click', () => changeMonth(1));
 
   $('todayBtn').addEventListener('click', () => {
-    currentMonth = new Date(
-      new Date().getFullYear(),
-      new Date().getMonth(),
-      1
-    );
-
+    currentMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
     selectedDate = isoDate(new Date());
     renderAll();
   });
 
   $('clusterFilter').addEventListener('change', event => {
     selectedCluster = event.target.value;
-    populateMunicipalities();
     renderAll();
   });
-
-  $('municipalityFilter').addEventListener('change', event => {
-    selectedMunicipality = event.target.value;
-    renderAll();
-  });
-
-  $('resetFiltersBtn').addEventListener('click', () => {
+$('resetFiltersBtn').addEventListener('click', () => {
     selectedCluster = '';
-    selectedMunicipality = '';
-
     $('clusterFilter').value = '';
-    $('municipalityFilter').value = '';
-
-    populateMunicipalities();
     renderAll();
   });
-
-  $('activityCluster').addEventListener('change', event => {
-    populateFormMunicipalities(event.target.value);
-  });
-
-  $('calendarGrid').addEventListener('click', event => {
+$('calendarGrid').addEventListener('click', event => {
     const eventItem = event.target.closest('[data-activity-id]');
 
     if (eventItem) {
@@ -854,7 +755,6 @@ function bindEvents() {
     if (!cell) return;
 
     selectedDate = cell.dataset.date;
-
     renderCalendar();
     renderDailyActivities();
   });
@@ -876,7 +776,6 @@ function bindEvents() {
 
   $('completedList').addEventListener('click', event => {
     const item = event.target.closest('[data-activity-id]');
-
     if (item) {
       $('completedModal').classList.remove('show');
       openDetails(item.dataset.activityId);
@@ -887,6 +786,7 @@ function bindEvents() {
     const button = event.target.closest('[data-action]');
     if (button) performActivityAction(button.dataset.action);
   });
+
 }
 
 /* =========================================================
@@ -896,14 +796,13 @@ function bindEvents() {
 async function initializeApp() {
   bindEvents();
   updateClock();
-
   setInterval(updateClock, 1000);
 
   selectedDate = isoDate(new Date());
 
   try {
     await checkConnection();
-    await loadLocations();
+    await loadFocals();
     await loadActivities();
   } catch (error) {
     console.error('Initialization error:', error);
