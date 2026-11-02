@@ -49,7 +49,14 @@
       </div>
     </section>
 
-    <section class="summary-grid">
+    <nav class="app-tabs" aria-label="Main navigation">
+      <button class="app-tab active" data-view="calendar"><span>▦</span><b>Calendar</b></button>
+      <button class="app-tab" data-view="activities"><span>☷</span><b>Activities</b></button>
+      <button class="app-tab" data-view="special-orders"><span>▣</span><b>Special Orders</b><em id="specialOrderNavCount">0</em></button>
+      <button class="app-tab" data-view="add"><span>＋</span><b>Add Activity</b></button>
+    </nav>
+
+    <section class="summary-grid view-calendar">
       <article class="summary-card">
         <span class="summary-label">TOTAL ACTIVITIES</span>
         <strong id="totalCount">0</strong>
@@ -75,7 +82,7 @@
       </article>
     </section>
 
-    <section class="filter-panel">
+    <section class="filter-panel view-calendar">
       <div class="filter-heading">
         <h3>Activity Filters</h3>
         <button id="resetFiltersBtn" class="btn-text">Reset filters</button>
@@ -98,7 +105,7 @@
 </div>
     </section>
 
-    <div class="main-layout">
+    <div class="main-layout view-calendar">
 
       <section class="calendar-panel">
         <div class="panel-heading">
@@ -175,6 +182,33 @@
       </aside>
     </div>
 
+
+    <section id="activitiesView" class="content-view" hidden>
+      <div class="view-heading"><div><h2>All Activities</h2><p>Browse and search recorded activities.</p></div>
+        <input id="activitySearch" class="search-input" type="search" placeholder="Search activity, cluster or focal..." aria-label="Search activities">
+      </div>
+      <div id="allActivitiesList" class="records-grid"></div>
+    </section>
+
+    <section id="specialOrdersView" class="content-view" hidden>
+      <div class="view-heading"><div><h2>Special Order Monitoring</h2><p>Activities marked as requiring a Special Order.</p></div>
+        <span class="so-live-label">● Live from activity records</span>
+      </div>
+      <div class="so-metrics">
+        <article class="so-metric"><span>Total Activities</span><strong id="soTotal">0</strong></article>
+        <article class="so-metric so-highlight"><span>Require Special Order</span><strong id="soRequired">0</strong></article>
+        <article class="so-metric"><span>No Special Order</span><strong id="soNotRequired">0</strong></article>
+        <article class="so-metric"><span>Share Requiring SO</span><strong id="soPercent">0%</strong></article>
+      </div>
+      <div class="so-toolbar">
+        <label>Cluster<select id="soClusterFilter"><option value="">All Clusters</option><option>CLUSTER 1A</option><option>CLUSTER 1B</option><option>CLUSTER 2A</option><option>CLUSTER 2B</option><option>CLUSTER 2C</option><option>CLUSTER OFFICE 1</option><option>CLUSTER OFFICE 2</option></select></label>
+        <label>Month<input type="month" id="soMonthFilter"></label>
+        <label>Responsible Focal<select id="soFocalFilter"><option value="">All Responsible Focals</option></select></label>
+        <button id="clearSoFilters" class="btn-secondary">Clear filters</button>
+      </div>
+      <div class="so-list-heading"><h3>Activities requiring Special Order</h3><span id="soResultCount">0 activities</span></div>
+      <div id="specialOrdersList" class="records-grid"></div>
+    </section>
 
   </main>
 
