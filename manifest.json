@@ -1,0 +1,27 @@
+
+{
+  "id": "./",
+  "name": "South Cebu Activity Calendar",
+  "short_name": "South Cebu Calendar",
+  "description": "DSWD Central Visayas South Cebu Activity Calendar",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f8fafc",
+  "theme_color": "#166534",
+  "icons": [
+    {
+      "src": "./poo-south-cebu-calendar-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./poo-south-cebu-calendar-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
