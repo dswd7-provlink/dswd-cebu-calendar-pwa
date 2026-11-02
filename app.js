@@ -18,6 +18,7 @@ const CLUSTER_COLORS = {
 
 let activities = [];
 let focalList = [];
+let clusterList = [];
 let currentMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 let selectedDate = '';
 let selectedActivity = null;
@@ -200,6 +201,31 @@ async function loadFocals() {
     $('activityResponsibleFocal').innerHTML =
       '<option value="">Unable to load focal list</option>';
     showToast('Unable to load Responsible Focal list.');
+  }
+}
+
+
+async function loadClusters() {
+  try {
+    const result = await apiRequest('getClusterList');
+    clusterList = Array.isArray(result.data)
+      ? result.data
+      : Array.isArray(result.result)
+        ? result.result
+        : Array.isArray(result)
+          ? result
+          : [];
+
+    $('clusterFilter').innerHTML = '<option value="">All Clusters</option>' +
+      clusterList.map(name => `<option value="${escapeHTML(name)}">${escapeHTML(name)}</option>`).join('');
+
+    $('activityCluster').innerHTML = '<option value="">Select Cluster</option>' +
+      clusterList.map(name => `<option value="${escapeHTML(name)}">${escapeHTML(name)}</option>`).join('');
+
+    if (selectedCluster) $('clusterFilter').value = selectedCluster;
+  } catch (error) {
+    console.error('Cluster list loading error:', error);
+    showToast('Unable to load Cluster list. Check the CLUSTERS sheet and API deployment.');
   }
 }
 
@@ -866,6 +892,7 @@ async function initializeApp() {
   try {
     await checkConnection();
     await loadFocals();
+    await loadClusters();
     await loadActivities();
   } catch (error) {
     console.error('Initialization error:', error);
