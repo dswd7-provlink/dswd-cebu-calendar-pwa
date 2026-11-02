@@ -1,4 +1,3 @@
-
 /* =========================================================
    DSWD CEBU CLUSTER 1 & 2 ACTIVITY CALENDAR PWA
    Frontend application
@@ -6,14 +5,14 @@
 
 const API_URL = 'https://dswd-cebu-calendar-api.cebu-bdm-api.workers.dev';
 
-const OFFICE_COLORS = {
-  'PANTAWID': '#3B82F6',
-  'KALAHI': '#22C55E',
-  'SLP': '#F59E0B',
-  'WALANG GUTOM': '#8B5CF6',
-  'CONVERGENCE': '#EF4444',
-  'AICS': '#06B6D4',
-  'SOCIAL PENSION': '#EC4899'
+const CLUSTER_COLORS = {
+  'CLUSTER 1A': '#2563EB',
+  'CLUSTER 1B': '#0D9488',
+  'CLUSTER 2A': '#7C3AED',
+  'CLUSTER 2B': '#D97706',
+  'CLUSTER 2C': '#DB2777',
+  'CLUSTER OFFICE 1': '#475569',
+  'CLUSTER OFFICE 2': '#0891B2'
 };
 
 let activities = [];
@@ -21,7 +20,6 @@ let locations = {};
 let currentMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 let selectedDate = '';
 let selectedActivity = null;
-let selectedOffice = '';
 let selectedCluster = '';
 let selectedMunicipality = '';
 
@@ -62,8 +60,8 @@ function prettyDate(value) {
     : '';
 }
 
-function officeColor(office) {
-  return OFFICE_COLORS[String(office || '').toUpperCase()] || '#64748B';
+function clusterColor(cluster) {
+  return CLUSTER_COLORS[String(cluster || '').toUpperCase()] || '#64748B';
 }
 
 function statusClass(status) {
@@ -140,7 +138,6 @@ async function apiRequest(action, args = []) {
   return result;
 }
 
-
 async function checkConnection() {
   try {
     const result = await apiRequest('ping');
@@ -196,25 +193,35 @@ async function loadLocations() {
 
 function getFilteredActivities() {
   return activities.filter(activity => {
-    const office = String(activity.office || '').toUpperCase();
     const cluster = String(activity.cluster || '').toUpperCase();
     const municipality = String(activity.municipality || '');
 
     return (
-      (!selectedOffice || office === selectedOffice) &&
       (!selectedCluster || cluster === selectedCluster) &&
       (!selectedMunicipality || municipality === selectedMunicipality)
     );
   });
 }
 
+function populateFormMunicipalities(clusterKey, selectedValue = '') {
+  const formSelect = $('activityMunicipality');
+  const list = Array.isArray(locations[String(clusterKey || '').toUpperCase()])
+    ? locations[String(clusterKey || '').toUpperCase()]
+    : [];
+
+  formSelect.innerHTML =
+    '<option value="">Select Municipality</option>' +
+    [...new Set(list)].sort().map(item =>
+      `<option value="${escapeHTML(item)}">${escapeHTML(item)}</option>`
+    ).join('');
+
+  if (list.includes(selectedValue)) formSelect.value = selectedValue;
+}
+
 function populateMunicipalities() {
   const select = $('municipalityFilter');
-  const formSelect = $('activityMunicipality');
 
   const previousFilter = selectedMunicipality;
-  const previousForm = formSelect.value;
-
   const clusterKey = selectedCluster;
   let list = [];
 
@@ -232,35 +239,11 @@ function populateMunicipalities() {
       `<option value="${escapeHTML(item)}">${escapeHTML(item)}</option>`
     ).join('');
 
-  formSelect.innerHTML =
-    '<option value="">Select Municipality</option>' +
-    list.map(item =>
-      `<option value="${escapeHTML(item)}">${escapeHTML(item)}</option>`
-    ).join('');
-
   if (list.includes(previousFilter)) {
     select.value = previousFilter;
   } else {
     selectedMunicipality = '';
   }
-
-  if (list.includes(previousForm)) {
-    formSelect.value = previousForm;
-  }
-}
-
-function setOfficeFilter(office) {
-  selectedOffice = office;
-
-  document.querySelectorAll('.office-tab').forEach(button => {
-    button.classList.toggle(
-      'active',
-      button.dataset.office === office
-    );
-  });
-
-  $('officeFilter').value = office;
-  renderAll();
 }
 
 /* =========================================================
@@ -348,22 +331,22 @@ function renderCalendar() {
 
     if (dayActivities.length <= 2) {
       dayActivities.forEach(activity => {
-        const color = officeColor(activity.office);
+        const color = clusterColor(activity.cluster);
 
         html += `
           <div class="event ${activity.status === 'DONE' ? 'done' : ''}"
                style="background:${color}"
                data-activity-id="${escapeHTML(activity.id)}">
             <div class="event-title">${escapeHTML(activity.title)}</div>
-            <div class="event-office">${escapeHTML(activity.office)}</div>
+            <div class="event-office">${escapeHTML(activity.cluster)}</div>
           </div>
         `;
       });
     } else if (dayActivities.length) {
-      const officeDots = [...new Set(dayActivities.map(a => a.office))]
-        .map(office => `
+      const clusterDots = [...new Set(dayActivities.map(a => a.cluster))]
+        .map(cluster => `
           <span class="activity-group-dot"
-                style="background:${officeColor(office)}"></span>
+                style="background:${clusterColor(cluster)}"></span>
         `).join('');
 
       html += `
@@ -371,7 +354,7 @@ function renderCalendar() {
           <div class="activity-group-count">
             ${dayActivities.length} ACTIVITIES
           </div>
-          <div class="activity-group-dots">${officeDots}</div>
+          <div class="activity-group-dots">${clusterDots}</div>
           <div class="activity-group-preview">
             View all activities
           </div>
@@ -430,8 +413,8 @@ function renderDailyActivities() {
         ${escapeHTML(prettyDate(activity.startDate || activity.date))}
         ${activity.endDate ? ' – ' + escapeHTML(prettyDate(activity.endDate)) : ''}
       </div>
-      <span class="office-label" style="color:${officeColor(activity.office)}">
-        ${escapeHTML(activity.office)}
+      <span class="office-label" style="color:${clusterColor(activity.cluster)}">
+        ${escapeHTML(activity.cluster)}
       </span>
       <div>
         <span class="status-badge ${statusClass(activity.status)}">
@@ -441,9 +424,8 @@ function renderDailyActivities() {
     </div>
   `).join('');
 }
-
 /* =========================================================
-   UPCOMING CONVERGENCE
+   UPCOMING ACTIVITIES
 ========================================================= */
 
 function renderUpcoming() {
@@ -451,8 +433,7 @@ function renderUpcoming() {
 
   const list = activities
     .filter(activity =>
-      activity.office === 'CONVERGENCE' &&
-      (activity.startDate || activity.date) > today &&
+      (activity.startDate || activity.date) >= today &&
       activity.status !== 'DONE' &&
       activity.status !== 'CANCELLED'
     )
@@ -474,7 +455,7 @@ function renderUpcoming() {
           </div>
         </div>
       `).join('')
-    : '<div class="empty-state">No upcoming convergence activities.</div>';
+    : '<div class="empty-state">No upcoming activities.</div>';
 }
 
 /* =========================================================
@@ -507,7 +488,7 @@ function renderCompleted() {
             ${escapeHTML(prettyDate(activity.date))}
             · ${escapeHTML(activity.municipality)}
           </div>
-          <div class="activity-meta">${escapeHTML(activity.office)}</div>
+          <div class="activity-meta">${escapeHTML(activity.cluster)}</div>
         </div>
       `).join('')
     : '<div class="empty-state">No completed activities.</div>';
@@ -542,14 +523,23 @@ function openActivityModal(activity = null) {
     $('activityDate').value = activity.startDate || activity.date || '';
     $('activityEndDate').value = activity.endDate || '';
     $('activityCluster').value = activity.cluster || '';
+    $('activityResponsibleFocal').value = activity.responsibleFocal || '';
+    $('activitySpecialOrder').value =
+      String(activity.specialOrderRequired || 'NO').toUpperCase();
 
-    populateMunicipalities();
-    $('activityMunicipality').value = activity.municipality || '';
-    $('activityOffice').value = activity.office || '';
+    $('activityBarangay').value = activity.barangay || '';
+    $('activityVenue').value = activity.venue || '';
+    $('activityDescription').value = activity.description || '';
+
+    populateFormMunicipalities(
+      activity.cluster,
+      activity.municipality || ''
+    );
+
     $('activityRemarks').value = activity.remarks || '';
   } else {
     $('activityDate').value = isoDate(new Date());
-    populateMunicipalities();
+    populateFormMunicipalities($('activityCluster').value);
   }
 
   $('activityModal').classList.add('show');
@@ -570,8 +560,12 @@ async function saveActivity(event) {
     date: $('activityDate').value,
     endDate: $('activityEndDate').value,
     cluster: $('activityCluster').value,
+    responsibleFocal: $('activityResponsibleFocal').value.trim(),
+    specialOrderRequired: $('activitySpecialOrder').value,
     municipality: $('activityMunicipality').value,
-    office: $('activityOffice').value,
+    barangay: $('activityBarangay').value.trim(),
+    venue: $('activityVenue').value.trim(),
+    description: $('activityDescription').value.trim(),
     remarks: $('activityRemarks').value.trim()
   };
 
@@ -608,7 +602,10 @@ async function saveActivity(event) {
 ========================================================= */
 
 function openDetails(id) {
-  const activity = activities.find(a => String(a.id) === String(id));
+  const activity = activities.find(
+    a => String(a.id) === String(id)
+  );
+
   if (!activity) return;
 
   selectedActivity = activity;
@@ -619,20 +616,36 @@ function openDetails(id) {
 
       <p><strong>Activity ID:</strong> ${escapeHTML(activity.id)}</p>
       <p><strong>Date:</strong> ${escapeHTML(prettyDate(activity.date))}</p>
-      ${activity.endDate ? `<p><strong>End Date:</strong> ${escapeHTML(prettyDate(activity.endDate))}</p>` : ''}
+
+      ${activity.endDate
+        ? `<p><strong>End Date:</strong> ${escapeHTML(prettyDate(activity.endDate))}</p>`
+        : ''}
+
       <p><strong>Cluster:</strong> ${escapeHTML(activity.cluster)}</p>
       <p><strong>Municipality:</strong> ${escapeHTML(activity.municipality)}</p>
-      <p><strong>Responsible Office:</strong>
-        <span style="color:${officeColor(activity.office)}">
-          ${escapeHTML(activity.office)}
-        </span>
+      <p><strong>Responsible Focal:</strong>
+        ${escapeHTML(activity.responsibleFocal || 'Not specified')}
+      </p>
+      <p><strong>Special Order Required:</strong>
+        ${escapeHTML(activity.specialOrderRequired || 'NO')}
+      </p>
+      <p><strong>Barangay:</strong>
+        ${escapeHTML(activity.barangay || 'Not specified')}
+      </p>
+      <p><strong>Venue:</strong>
+        ${escapeHTML(activity.venue || 'Not specified')}
+      </p>
+      <p><strong>Description:</strong>
+        ${escapeHTML(activity.description || 'None')}
       </p>
       <p><strong>Status:</strong>
         <span class="status-badge ${statusClass(activity.status)}">
           ${escapeHTML(activity.status)}
         </span>
       </p>
-      <p><strong>Remarks:</strong> ${escapeHTML(activity.remarks || 'None')}</p>
+      <p><strong>Remarks:</strong>
+        ${escapeHTML(activity.remarks || 'None')}
+      </p>
     </div>
   `;
 
@@ -644,25 +657,25 @@ function renderActivityActions(activity) {
   const actions = [];
 
   if (activity.status !== 'CANCELLED') {
-    actions.push(`<button class="btn-secondary" data-action="edit">Edit</button>`);
-    actions.push(`<button class="btn-secondary" data-action="reschedule">Reschedule</button>`);
+    actions.push('<button class="btn-secondary" data-action="edit">Edit</button>');
+    actions.push('<button class="btn-secondary" data-action="reschedule">Reschedule</button>');
   }
 
   if (activity.status === 'SCHEDULED' || activity.status === 'MOVED') {
-    actions.push(`<button class="btn-primary" data-action="done">Mark Done</button>`);
-    actions.push(`<button class="btn-secondary" data-action="cancel">Cancel Activity</button>`);
+    actions.push('<button class="btn-primary" data-action="done">Mark Done</button>');
+    actions.push('<button class="btn-secondary" data-action="cancel">Cancel Activity</button>');
   }
 
   if (activity.status === 'DONE') {
-    actions.push(`<button class="btn-secondary" data-action="reopen">Reopen</button>`);
+    actions.push('<button class="btn-secondary" data-action="reopen">Reopen</button>');
   }
 
   if (activity.status === 'CANCELLED') {
-    actions.push(`<button class="btn-primary" data-action="restore">Restore</button>`);
+    actions.push('<button class="btn-primary" data-action="restore">Restore</button>');
   }
 
-  actions.push(`<button class="btn-secondary" data-action="history">View History</button>`);
-  actions.push(`<button class="btn-secondary" data-action="delete">Delete</button>`);
+  actions.push('<button class="btn-secondary" data-action="history">View History</button>');
+  actions.push('<button class="btn-secondary" data-action="delete">Delete</button>');
 
   $('activityActions').innerHTML = actions.join('');
 }
@@ -711,7 +724,11 @@ async function performActivityAction(action) {
     }
 
     if (action === 'reschedule') {
-      const newDate = prompt('New start date (YYYY-MM-DD):', activity.date);
+      const newDate = prompt(
+        'New start date (YYYY-MM-DD):',
+        activity.startDate || activity.date
+      );
+
       if (!newDate) return;
 
       const newEndDate = prompt(
@@ -730,7 +747,10 @@ async function performActivityAction(action) {
     }
 
     if (action === 'delete') {
-      if (!confirm('Permanently delete this activity? This cannot be undone.')) return;
+      if (!confirm('Permanently delete this activity? This cannot be undone.')) {
+        return;
+      }
+
       result = await apiRequest('deleteActivity', [id]);
     }
 
@@ -745,6 +765,7 @@ async function performActivityAction(action) {
           `${item.timestamp}\n${item.action}\n${item.remarks}`
         ).join('\n\n----------------\n\n'));
       }
+
       return;
     }
 
@@ -759,18 +780,20 @@ async function performActivityAction(action) {
     console.error(error);
   }
 }
-
 /* =========================================================
    EVENT LISTENERS
 ========================================================= */
 
 function bindEvents() {
   $('addActivityBtn').addEventListener('click', () => openActivityModal());
+
   $('closeModalBtn').addEventListener('click', closeActivityModal);
   $('cancelModalBtn').addEventListener('click', closeActivityModal);
+
   $('activityForm').addEventListener('submit', saveActivity);
 
   $('closeDetailsBtn').addEventListener('click', closeDetailsModal);
+
   $('closeCompletedBtn').addEventListener('click', () => {
     $('completedModal').classList.remove('show');
   });
@@ -783,7 +806,12 @@ function bindEvents() {
   $('nextMonthBtn').addEventListener('click', () => changeMonth(1));
 
   $('todayBtn').addEventListener('click', () => {
-    currentMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+    currentMonth = new Date(
+      new Date().getFullYear(),
+      new Date().getMonth(),
+      1
+    );
+
     selectedDate = isoDate(new Date());
     renderAll();
   });
@@ -799,43 +827,19 @@ function bindEvents() {
     renderAll();
   });
 
-  $('officeFilter').addEventListener('change', event => {
-    setOfficeFilter(event.target.value);
-  });
-
   $('resetFiltersBtn').addEventListener('click', () => {
-    selectedOffice = '';
     selectedCluster = '';
     selectedMunicipality = '';
 
-    $('officeFilter').value = '';
     $('clusterFilter').value = '';
     $('municipalityFilter').value = '';
 
     populateMunicipalities();
-    setOfficeFilter('');
-  });
-
-  $('officeTabs').addEventListener('click', event => {
-    const button = event.target.closest('.office-tab');
-    if (!button) return;
-    setOfficeFilter(button.dataset.office || '');
+    renderAll();
   });
 
   $('activityCluster').addEventListener('change', event => {
-    const previous = $('activityMunicipality').value;
-    selectedCluster = selectedCluster; // Keep calendar filter unchanged.
-    const list = locations[event.target.value] || [];
-
-    $('activityMunicipality').innerHTML =
-      '<option value="">Select Municipality</option>' +
-      [...new Set(list)].sort().map(item =>
-        `<option value="${escapeHTML(item)}">${escapeHTML(item)}</option>`
-      ).join('');
-
-    if (list.includes(previous)) {
-      $('activityMunicipality').value = previous;
-    }
+    populateFormMunicipalities(event.target.value);
   });
 
   $('calendarGrid').addEventListener('click', event => {
@@ -850,6 +854,7 @@ function bindEvents() {
     if (!cell) return;
 
     selectedDate = cell.dataset.date;
+
     renderCalendar();
     renderDailyActivities();
   });
@@ -871,6 +876,7 @@ function bindEvents() {
 
   $('completedList').addEventListener('click', event => {
     const item = event.target.closest('[data-activity-id]');
+
     if (item) {
       $('completedModal').classList.remove('show');
       openDetails(item.dataset.activityId);
@@ -881,7 +887,6 @@ function bindEvents() {
     const button = event.target.closest('[data-action]');
     if (button) performActivityAction(button.dataset.action);
   });
-
 }
 
 /* =========================================================
@@ -891,6 +896,7 @@ function bindEvents() {
 async function initializeApp() {
   bindEvents();
   updateClock();
+
   setInterval(updateClock, 1000);
 
   selectedDate = isoDate(new Date());
