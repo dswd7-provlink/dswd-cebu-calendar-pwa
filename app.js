@@ -193,6 +193,8 @@ async function loadFocals() {
       focalList.map(name =>
         `<option value="${escapeHTML(name)}">${escapeHTML(name)}</option>`
       ).join('');
+    $('soFocalFilter').innerHTML = '<option value="">All Responsible Focals</option>' +
+      focalList.map(name => `<option value="${escapeHTML(name)}">${escapeHTML(name)}</option>`).join('');
   } catch (error) {
     console.error('Focal list loading error:', error);
     $('activityResponsibleFocal').innerHTML =
@@ -461,6 +463,60 @@ function renderCompleted() {
     : '<div class="empty-state">No completed activities.</div>';
 }
 
+function requiresSpecialOrder(activity) {
+  const value = String(activity.specialOrderRequired ?? activity.specialOrder ?? 'NO').trim().toUpperCase();
+  return ['YES', 'Y', 'TRUE', '1'].includes(value);
+}
+
+function activityCard(activity, showSO = false) {
+  return `<article class="record-card" data-activity-id="${escapeHTML(activity.id)}">
+    <div class="record-card-top"><span class="cluster-chip" style="--cluster:${clusterColor(activity.cluster)}">${escapeHTML(activity.cluster || 'No cluster')}</span>
+      ${showSO ? '<span class="so-required-chip">SPECIAL ORDER REQUIRED</span>' : `<span class="status-badge ${statusClass(activity.status)}">${escapeHTML(activity.status || 'SCHEDULED')}</span>`}</div>
+    <h3>${escapeHTML(activity.title || 'Untitled activity')}</h3>
+    <p class="record-date">${escapeHTML(prettyDate(activity.startDate || activity.date))}${activity.endDate ? ' – ' + escapeHTML(prettyDate(activity.endDate)) : ''}</p>
+    <div class="record-meta"><span>♙ ${escapeHTML(activity.responsibleFocal || 'Focal not specified')}</span></div>
+  </article>`;
+}
+
+function renderAllActivities() {
+  const query = String($('activitySearch')?.value || '').trim().toLowerCase();
+  const list = [...activities].sort((a,b) => String(b.startDate || b.date || '').localeCompare(String(a.startDate || a.date || '')))
+    .filter(a => [a.title, a.cluster, a.responsibleFocal, a.status].join(' ').toLowerCase().includes(query));
+  $('allActivitiesList').innerHTML = list.length ? list.map(a => activityCard(a)).join('') : '<div class="empty-state">No matching activities found.</div>';
+}
+
+function renderSpecialOrders() {
+  const required = activities.filter(requiresSpecialOrder);
+  const total = activities.length;
+  $('soTotal').textContent = total;
+  $('soRequired').textContent = required.length;
+  $('soNotRequired').textContent = total - required.length;
+  $('soPercent').textContent = total ? Math.round(required.length / total * 100) + '%' : '0%';
+  $('specialOrderNavCount').textContent = required.length;
+  const cluster = $('soClusterFilter').value;
+  const month = $('soMonthFilter').value;
+  const focal = $('soFocalFilter').value;
+  const list = required.filter(a => {
+    const date = a.startDate || a.date || '';
+    return (!cluster || String(a.cluster || '').toUpperCase() === cluster) &&
+      (!month || date.slice(0,7) === month) &&
+      (!focal || String(a.responsibleFocal || '') === focal);
+  }).sort((a,b) => String(a.startDate || a.date || '').localeCompare(String(b.startDate || b.date || '')));
+  $('soResultCount').textContent = `${list.length} ${list.length === 1 ? 'activity' : 'activities'}`;
+  $('specialOrdersList').innerHTML = list.length ? list.map(a => activityCard(a, true)).join('') : '<div class="empty-state">No activities requiring a Special Order match these filters.</div>';
+}
+
+function switchView(view) {
+  document.querySelectorAll('.app-tab').forEach(tab => tab.classList.toggle('active', tab.dataset.view === view));
+  document.querySelectorAll('.view-calendar').forEach(el => el.hidden = view !== 'calendar');
+  $('activitiesView').hidden = view !== 'activities';
+  $('specialOrdersView').hidden = view !== 'special-orders';
+  if (view === 'activities') renderAllActivities();
+  if (view === 'special-orders') renderSpecialOrders();
+  if (view === 'add') openActivityModal();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
 /* =========================================================
    RENDER ALL
 ========================================================= */
@@ -471,6 +527,8 @@ function renderAll() {
   renderDailyActivities();
   renderUpcoming();
   renderCompleted();
+  renderAllActivities();
+  renderSpecialOrders();
 }
 
 /* =========================================================
@@ -711,6 +769,11 @@ async function performActivityAction(action) {
 ========================================================= */
 
 function bindEvents() {
+  document.querySelectorAll('.app-tab').forEach(tab => tab.addEventListener('click', () => switchView(tab.dataset.view)));
+  $('activitySearch').addEventListener('input', renderAllActivities);
+  ['soClusterFilter', 'soMonthFilter', 'soFocalFilter'].forEach(id => $(id).addEventListener('change', renderSpecialOrders));
+  $('clearSoFilters').addEventListener('click', () => { $('soClusterFilter').value = ''; $('soMonthFilter').value = ''; $('soFocalFilter').value = ''; renderSpecialOrders(); });
+  ['allActivitiesList', 'specialOrdersList'].forEach(id => $(id).addEventListener('click', event => { const card = event.target.closest('[data-activity-id]'); if (card) openDetails(card.dataset.activityId); }));
   $('addActivityBtn').addEventListener('click', () => openActivityModal());
   $('closeModalBtn').addEventListener('click', closeActivityModal);
   $('cancelModalBtn').addEventListener('click', closeActivityModal);
