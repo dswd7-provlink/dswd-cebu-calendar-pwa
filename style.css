@@ -1431,8 +1431,3 @@ label:has(#officeFilter) {
     flex: 0 0 90px !important;
   }
 }
-/* Updated activity classification: cluster-based, no Responsible Office UI */
-.office-filter-panel, .calendar-legend, #officeFilter, .office-label { display: none !important; }
-.event-office { opacity: .9; font-size: 9px; }
-#activityForm textarea { min-height: 72px; }
-#activityForm input, #activityForm select, #activityForm textarea { max-width: 100%; }
