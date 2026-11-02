@@ -1442,3 +1442,70 @@ label:has(#officeFilter) {
 @media(max-width:850px){.records-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.so-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:600px){body{padding-bottom:82px}.app-tabs{position:fixed;z-index:50;left:10px;right:10px;bottom:calc(9px + env(safe-area-inset-bottom));width:auto;justify-content:space-around;margin:0;padding:6px;background:rgba(255,255,255,.96);backdrop-filter:blur(14px);border:1px solid #dce5ed;box-shadow:0 8px 28px #0f172a24;border-radius:17px;gap:2px}.app-tab{flex:1;min-width:0;flex-direction:column;justify-content:center;gap:3px;padding:7px 3px;font-size:9px}.app-tab span{font-size:19px}.app-tab b{white-space:nowrap;font-size:9px}.app-tab em{position:absolute;top:1px;right:8px;font-size:8px;padding:1px 5px}.view-heading{align-items:stretch;flex-direction:column}.view-heading h2{font-size:21px}.search-input{width:100%}.records-grid{grid-template-columns:1fr;gap:10px}.record-card{padding:14px}.so-metrics{gap:8px}.so-metric{padding:12px;border-radius:12px}.so-metric span{font-size:10px}.so-metric strong{font-size:25px;margin-top:5px}.so-toolbar{padding:12px;gap:9px}.so-toolbar label{min-width:calc(50% - 6px)}.so-toolbar button{width:100%}.so-list-heading h3{font-size:14px}.so-live-label{align-self:flex-start}}
 @media(min-width:601px){.app-tabs{margin-top:22px}.app-container{max-width:1500px}}
+
+
+/* DESKTOP NAVIGATION FIX — stronger button reset and polished tab bar */
+@media (min-width: 601px) {
+  nav.app-tabs {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 8px !important;
+    width: 100% !important;
+    max-width: none !important;
+    min-height: 58px !important;
+    margin: 18px 0 18px !important;
+    padding: 7px !important;
+    background: #eaf1f8 !important;
+    border: 1px solid #d8e3ee !important;
+    border-radius: 14px !important;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, .04) !important;
+  }
+  nav.app-tabs > button.app-tab {
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    display: inline-flex !important;
+    flex: 0 0 auto !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 9px !important;
+    min-height: 42px !important;
+    padding: 0 20px !important;
+    border: 1px solid transparent !important;
+    border-radius: 10px !important;
+    background: transparent !important;
+    color: #475569 !important;
+    font-family: inherit !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    line-height: 1 !important;
+    box-shadow: none !important;
+    outline: none !important;
+  }
+  nav.app-tabs > button.app-tab:hover {
+    background: rgba(255,255,255,.72) !important;
+    color: #14532d !important;
+  }
+  nav.app-tabs > button.app-tab.active {
+    background: #ffffff !important;
+    color: #14532d !important;
+    border-color: #dce8df !important;
+    box-shadow: 0 2px 7px rgba(15, 23, 42, .09) !important;
+  }
+  nav.app-tabs > button.app-tab span { font-size: 17px !important; }
+  nav.app-tabs > button.app-tab b { font-size: 13px !important; white-space: nowrap !important; }
+  nav.app-tabs > button.app-tab em {
+    position: static !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-width: 20px !important;
+    padding: 3px 7px !important;
+    border-radius: 20px !important;
+    background: #dbeafe !important;
+    color: #1d4ed8 !important;
+    font-size: 11px !important;
+    font-style: normal !important;
+  }
+}
