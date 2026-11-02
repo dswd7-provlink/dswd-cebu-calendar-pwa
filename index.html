@@ -22,7 +22,7 @@
       <img class="brand-logo-image" src="./DSWDlogo.png" alt="DSWD logo">
       <div>
         <h1>DSWD CENTRAL VISAYAS</h1>
-        <p>CEBU CLUSTER 1 &amp; 2 ACTIVITY CALENDAR</p>
+        <p>CEBU ACTIVITY CALENDAR</p>
       </div>
     </div>
 
@@ -40,7 +40,7 @@
     <section class="welcome-row">
       <div>
         <h2>Activity Calendar</h2>
-        <p>Monitor and manage activities across Cebu Cluster 1 and 2.</p>
+        <p>Monitor and manage activities across Cebu operational clusters.</p>
       </div>
 
       <div class="connection-status" id="connectionStatus">
@@ -86,8 +86,13 @@
           Cluster
           <select id="clusterFilter">
             <option value="">All Clusters</option>
-            <option value="CLUSTER 1">Cluster 1</option>
-            <option value="CLUSTER 2">Cluster 2</option>
+            <option value="CLUSTER 1A">Cluster 1A</option>
+            <option value="CLUSTER 1B">Cluster 1B</option>
+            <option value="CLUSTER 2A">Cluster 2A</option>
+            <option value="CLUSTER 2B">Cluster 2B</option>
+            <option value="CLUSTER 2C">Cluster 2C</option>
+            <option value="CLUSTER OFFICE 1">Cluster Office 1</option>
+            <option value="CLUSTER OFFICE 2">Cluster Office 2</option>
           </select>
         </label>
 
@@ -98,19 +103,6 @@
           </select>
         </label>
 
-        <label>
-          Responsible Office
-          <select id="officeFilter">
-            <option value="">All Offices</option>
-            <option value="PANTAWID">PANTAWID</option>
-            <option value="KALAHI">KALAHI</option>
-            <option value="SLP">SLP</option>
-            <option value="WALANG GUTOM">WALANG GUTOM</option>
-            <option value="CONVERGENCE">CONVERGENCE</option>
-            <option value="AICS">AICS</option>
-            <option value="SOCIAL PENSION">SOCIAL PENSION</option>
-          </select>
-        </label>
       </div>
     </section>
 
@@ -147,15 +139,6 @@
           </div>
         </div>
 
-        <div class="calendar-legend">
-          <span><i class="legend-dot pantawid"></i>PANTAWID</span>
-          <span><i class="legend-dot kalahi"></i>KALAHI</span>
-          <span><i class="legend-dot slp"></i>SLP</span>
-          <span><i class="legend-dot gutom"></i>WALANG GUTOM</span>
-          <span><i class="legend-dot convergence"></i>CONVERGENCE</span>
-          <span><i class="legend-dot aics"></i>AICS</span>
-          <span><i class="legend-dot pension"></i>SOCIAL PENSION</span>
-        </div>
       </section>
 
       <aside class="side-panel">
@@ -175,8 +158,8 @@
         <section class="side-card convergence-card">
           <div class="side-card-heading">
             <div>
-              <h3>Upcoming Convergence</h3>
-              <p>Next scheduled convergence activities</p>
+              <h3>Upcoming Activities</h3>
+              <p>Next scheduled activities</p>
             </div>
           </div>
           <div id="upcomingList" class="activity-list">
@@ -200,28 +183,11 @@
       </aside>
     </div>
 
-    <section class="office-filter-panel">
-      <div class="office-filter-heading">
-        <strong>FILTER BY OFFICE</strong>
-        <span>Swipe to see all offices</span>
-      </div>
-
-      <nav id="officeTabs" class="office-tabs" aria-label="Office filters">
-        <button class="office-tab active" data-office="">ALL</button>
-        <button class="office-tab" data-office="PANTAWID">PANTAWID</button>
-        <button class="office-tab" data-office="KALAHI">KALAHI</button>
-        <button class="office-tab" data-office="SLP">SLP</button>
-        <button class="office-tab" data-office="WALANG GUTOM">WALANG GUTOM</button>
-        <button class="office-tab" data-office="CONVERGENCE">CONVERGENCE</button>
-        <button class="office-tab" data-office="AICS">AICS</button>
-        <button class="office-tab" data-office="SOCIAL PENSION">SOCIAL PENSION</button>
-      </nav>
-    </section>
 
   </main>
 
   <footer class="app-footer">
-    DSWD CENTRAL VISAYAS | CEBU CLUSTER 1 &amp; 2
+    DSWD CENTRAL VISAYAS | CEBU CLUSTERS
     <span>Activity Calendar Management System</span>
   </footer>
 
@@ -261,8 +227,13 @@
             Cluster
             <select id="activityCluster" required>
               <option value="">Select Cluster</option>
-              <option value="CLUSTER 1">Cluster 1</option>
-              <option value="CLUSTER 2">Cluster 2</option>
+              <option value="CLUSTER 1A">Cluster 1A</option>
+              <option value="CLUSTER 1B">Cluster 1B</option>
+              <option value="CLUSTER 2A">Cluster 2A</option>
+              <option value="CLUSTER 2B">Cluster 2B</option>
+              <option value="CLUSTER 2C">Cluster 2C</option>
+              <option value="CLUSTER OFFICE 1">Cluster Office 1</option>
+              <option value="CLUSTER OFFICE 2">Cluster Office 2</option>
             </select>
           </label>
 
@@ -274,18 +245,34 @@
           </label>
         </div>
 
+
         <label>
-          Responsible Office
-          <select id="activityOffice" required>
-            <option value="">Select Office</option>
-            <option value="PANTAWID">PANTAWID</option>
-            <option value="KALAHI">KALAHI</option>
-            <option value="SLP">SLP</option>
-            <option value="WALANG GUTOM">WALANG GUTOM</option>
-            <option value="CONVERGENCE">CONVERGENCE</option>
-            <option value="AICS">AICS</option>
-            <option value="SOCIAL PENSION">SOCIAL PENSION</option>
+          Responsible Focal
+          <input type="text" id="activityResponsibleFocal" placeholder="Name / focal person" required>
+        </label>
+
+        <label>
+          Does this activity require a Special Order?
+          <select id="activitySpecialOrder" required>
+            <option value="NO">NO</option>
+            <option value="YES">YES</option>
           </select>
+        </label>
+
+        <div class="form-row">
+          <label>
+            Barangay
+            <input type="text" id="activityBarangay" placeholder="Barangay (optional)">
+          </label>
+          <label>
+            Venue
+            <input type="text" id="activityVenue" placeholder="Venue (optional)">
+          </label>
+        </div>
+
+        <label>
+          Description
+          <textarea id="activityDescription" rows="2"></textarea>
         </label>
 
         <label>
