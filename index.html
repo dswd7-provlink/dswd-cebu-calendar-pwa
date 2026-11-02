@@ -95,15 +95,7 @@
             <option value="CLUSTER OFFICE 2">Cluster Office 2</option>
           </select>
         </label>
-
-        <label>
-          Municipality / City
-          <select id="municipalityFilter">
-            <option value="">All Municipalities</option>
-          </select>
-        </label>
-
-      </div>
+</div>
     </section>
 
     <div class="main-layout">
@@ -215,7 +207,6 @@
             Start Date
             <input type="date" id="activityDate" required>
           </label>
-
           <label>
             End Date
             <input type="date" id="activityEndDate">
@@ -238,18 +229,12 @@
           </label>
 
           <label>
-            Municipality / City
-            <select id="activityMunicipality" required>
-              <option value="">Select Municipality</option>
+            Responsible Focal
+            <select id="activityResponsibleFocal" required>
+              <option value="">Loading focal list...</option>
             </select>
           </label>
         </div>
-
-
-        <label>
-          Responsible Focal
-          <input type="text" id="activityResponsibleFocal" placeholder="Name / focal person" required>
-        </label>
 
         <label>
           Does this activity require a Special Order?
@@ -259,20 +244,9 @@
           </select>
         </label>
 
-        <div class="form-row">
-          <label>
-            Barangay
-            <input type="text" id="activityBarangay" placeholder="Barangay (optional)">
-          </label>
-          <label>
-            Venue
-            <input type="text" id="activityVenue" placeholder="Venue (optional)">
-          </label>
-        </div>
-
         <label>
           Description
-          <textarea id="activityDescription" rows="2"></textarea>
+          <textarea id="activityDescription" rows="3"></textarea>
         </label>
 
         <label>
