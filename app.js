@@ -7,14 +7,13 @@
 const API_URL = 'https://dswd-cebu-calendar-api.cebu-bdm-api.workers.dev';
 
 const CLUSTER_COLORS = {
-   'CLUSTER 1A': '#2563EB',
+  'CLUSTER 1A': '#2563EB',
   'CLUSTER 1B': '#0D9488',
   'CLUSTER 2A': '#7C3AED',
   'CLUSTER 2B': '#D97706',
   'CLUSTER 2C': '#DB2777',
   'CLUSTER OFFICE 1': '#475569',
-  'CLUSTER OFFICE 2': '#0891B2',
-  'POO OFFICE': '#16A34A'
+  'CLUSTER OFFICE 2': '#0891B2'
 };
 
 let activities = [];
@@ -35,6 +34,47 @@ function escapeHTML(value) {
     '"': '&quot;',
     "'": '&#39;'
   })[char]);
+}
+
+function splitMultiValue(value) {
+  if (Array.isArray(value)) return value.map(v => String(v || '').trim()).filter(Boolean);
+  return String(value || '').split(/\s*\|\s*/).map(v => v.trim()).filter(Boolean);
+}
+
+function joinMultiValue(values) {
+  return [...new Set((values || []).map(v => String(v || '').trim()).filter(Boolean))].join(' | ');
+}
+
+function hasMultiValue(value, selected) {
+  if (!selected) return true;
+  return splitMultiValue(value).some(v => v.toUpperCase() === String(selected).toUpperCase());
+}
+
+function renderCheckOptions(containerId, values, groupName) {
+  const container = $(containerId);
+  if (!container) return;
+  container.innerHTML = values.length ? values.map((value, index) => `
+    <label class="multi-check-option" for="${groupName}-${index}">
+      <input type="checkbox" id="${groupName}-${index}" name="${groupName}" value="${escapeHTML(value)}">
+      <span class="custom-check" aria-hidden="true"></span>
+      <span class="option-text">${escapeHTML(value)}</span>
+    </label>
+  `).join('') : '<span class="loading-option">No options available.</span>';
+}
+
+function setCheckedValues(containerId, values) {
+  const wanted = new Set(splitMultiValue(values).map(v => v.toUpperCase()));
+  const container = $(containerId);
+  if (!container) return;
+  container.querySelectorAll('input[type="checkbox"]').forEach(input => {
+    input.checked = wanted.has(input.value.toUpperCase());
+  });
+}
+
+function getCheckedValues(containerId) {
+  const container = $(containerId);
+  if (!container) return [];
+  return [...container.querySelectorAll('input[type="checkbox"]:checked')].map(input => input.value);
 }
 
 function isoDate(date) {
@@ -189,18 +229,12 @@ async function loadFocals() {
           ? result
           : [];
 
-    const select = $('activityResponsibleFocal');
-    select.innerHTML =
-      '<option value="">Select Responsible Focal</option>' +
-      focalList.map(name =>
-        `<option value="${escapeHTML(name)}">${escapeHTML(name)}</option>`
-      ).join('');
+    renderCheckOptions('activityResponsibleFocal', focalList, 'activity-focal');
     $('soFocalFilter').innerHTML = '<option value="">All Responsible Focals</option>' +
       focalList.map(name => `<option value="${escapeHTML(name)}">${escapeHTML(name)}</option>`).join('');
   } catch (error) {
     console.error('Focal list loading error:', error);
-    $('activityResponsibleFocal').innerHTML =
-      '<option value="">Unable to load focal list</option>';
+    $('activityResponsibleFocal').innerHTML = '<span class="loading-option">Unable to load focal list.</span>';
     showToast('Unable to load Responsible Focal list.');
   }
 }
@@ -220,8 +254,7 @@ async function loadClusters() {
     $('clusterFilter').innerHTML = '<option value="">All Clusters</option>' +
       clusterList.map(name => `<option value="${escapeHTML(name)}">${escapeHTML(name)}</option>`).join('');
 
-    $('activityCluster').innerHTML = '<option value="">Select Cluster</option>' +
-      clusterList.map(name => `<option value="${escapeHTML(name)}">${escapeHTML(name)}</option>`).join('');
+    renderCheckOptions('activityCluster', clusterList, 'activity-cluster');
 
     if (selectedCluster) $('clusterFilter').value = selectedCluster;
   } catch (error) {
@@ -236,8 +269,7 @@ async function loadClusters() {
 
 function getFilteredActivities() {
   return activities.filter(activity => {
-    const cluster = String(activity.cluster || '').toUpperCase();
-    return !selectedCluster || cluster === selectedCluster;
+    return !selectedCluster || hasMultiValue(activity.cluster, selectedCluster);
   });
 }
 
@@ -326,19 +358,19 @@ function renderCalendar() {
 
     if (dayActivities.length <= 2) {
       dayActivities.forEach(activity => {
-        const color = clusterColor(activity.cluster);
+        const color = clusterColor(splitMultiValue(activity.cluster)[0]);
 
         html += `
           <div class="event ${activity.status === 'DONE' ? 'done' : ''}"
                style="background:${color}"
                data-activity-id="${escapeHTML(activity.id)}">
             <div class="event-title">${escapeHTML(activity.title)}</div>
-            <div class="event-office">${escapeHTML(activity.cluster)}</div>
+            <div class="event-office">${escapeHTML(splitMultiValue(activity.cluster).join(', '))}</div>
           </div>
         `;
       });
     } else if (dayActivities.length) {
-      const clusterDots = [...new Set(dayActivities.map(a => a.cluster))]
+      const clusterDots = [...new Set(dayActivities.flatMap(a => splitMultiValue(a.cluster)))]
         .map(cluster => `
           <span class="activity-group-dot"
                 style="background:${clusterColor(cluster)}"></span>
@@ -402,14 +434,14 @@ function renderDailyActivities() {
          data-activity-id="${escapeHTML(activity.id)}">
       <h4>${escapeHTML(activity.title)}</h4>
       <div class="activity-meta">
-        ${escapeHTML(activity.cluster)}
+        ${escapeHTML(splitMultiValue(activity.cluster).join(', '))}
       </div>
       <div class="activity-meta">
         ${escapeHTML(prettyDate(activity.startDate || activity.date))}
         ${activity.endDate ? ' – ' + escapeHTML(prettyDate(activity.endDate)) : ''}
       </div>
-      <span class="office-label" style="color:${clusterColor(activity.cluster)}">
-        ${escapeHTML(activity.cluster)}
+      <span class="office-label" style="color:${clusterColor(splitMultiValue(activity.cluster)[0])}">
+        ${escapeHTML(splitMultiValue(activity.cluster).join(', '))}
       </span>
       <div>
         <span class="status-badge ${statusClass(activity.status)}">
@@ -484,7 +516,7 @@ function renderCompleted() {
             ${escapeHTML(prettyDate(activity.date))}
             · 
           </div>
-          <div class="activity-meta">${escapeHTML(activity.cluster)}</div>
+          <div class="activity-meta">${escapeHTML(splitMultiValue(activity.cluster).join(', '))}</div>
         </div>
       `).join('')
     : '<div class="empty-state">No completed activities.</div>';
@@ -497,11 +529,11 @@ function requiresSpecialOrder(activity) {
 
 function activityCard(activity, showSO = false) {
   return `<article class="record-card" data-activity-id="${escapeHTML(activity.id)}">
-    <div class="record-card-top"><span class="cluster-chip" style="--cluster:${clusterColor(activity.cluster)}">${escapeHTML(activity.cluster || 'No cluster')}</span>
+    <div class="record-card-top"><span class="cluster-chip" style="--cluster:${clusterColor(splitMultiValue(activity.cluster)[0])}">${escapeHTML(splitMultiValue(activity.cluster).join(', ') || 'No cluster')}</span>
       ${showSO ? '<span class="so-required-chip">SPECIAL ORDER REQUIRED</span>' : `<span class="status-badge ${statusClass(activity.status)}">${escapeHTML(activity.status || 'SCHEDULED')}</span>`}</div>
     <h3>${escapeHTML(activity.title || 'Untitled activity')}</h3>
     <p class="record-date">${escapeHTML(prettyDate(activity.startDate || activity.date))}${activity.endDate ? ' – ' + escapeHTML(prettyDate(activity.endDate)) : ''}</p>
-    <div class="record-meta"><span>♙ ${escapeHTML(activity.responsibleFocal || 'Focal not specified')}</span></div>
+    <div class="record-meta"><span>♙ ${escapeHTML(splitMultiValue(activity.responsibleFocal).join(', ') || 'Focal not specified')}</span></div>
   </article>`;
 }
 
@@ -525,9 +557,9 @@ function renderSpecialOrders() {
   const focal = $('soFocalFilter').value;
   const list = required.filter(a => {
     const date = a.startDate || a.date || '';
-    return (!cluster || String(a.cluster || '').toUpperCase() === cluster) &&
+    return (!cluster || hasMultiValue(a.cluster, cluster)) &&
       (!month || date.slice(0,7) === month) &&
-      (!focal || String(a.responsibleFocal || '') === focal);
+      (!focal || hasMultiValue(a.responsibleFocal, focal));
   }).sort((a,b) => String(a.startDate || a.date || '').localeCompare(String(b.startDate || b.date || '')));
   $('soResultCount').textContent = `${list.length} ${list.length === 1 ? 'activity' : 'activities'}`;
   $('specialOrdersList').innerHTML = list.length ? list.map(a => activityCard(a, true)).join('') : '<div class="empty-state">No activities requiring a Special Order match these filters.</div>';
@@ -565,6 +597,8 @@ function renderAll() {
 function openActivityModal(activity = null) {
   selectedActivity = activity;
   $('activityForm').reset();
+  setCheckedValues('activityCluster', []);
+  setCheckedValues('activityResponsibleFocal', []);
 
   $('activityId').value = activity ? activity.id : '';
   $('modalTitle').textContent = activity ? 'Edit Activity' : 'Add Activity';
@@ -573,8 +607,8 @@ function openActivityModal(activity = null) {
     $('activityTitle').value = activity.title || '';
     $('activityDate').value = activity.startDate || activity.date || '';
     $('activityEndDate').value = activity.endDate || '';
-    $('activityCluster').value = activity.cluster || '';
-    $('activityResponsibleFocal').value = activity.responsibleFocal || '';
+    setCheckedValues('activityCluster', activity.cluster);
+    setCheckedValues('activityResponsibleFocal', activity.responsibleFocal);
     $('activitySpecialOrder').value =
       String(activity.specialOrderRequired || 'NO').toUpperCase();
     $('activityDescription').value = activity.description || '';
@@ -602,13 +636,18 @@ async function saveActivity(event) {
     title: $('activityTitle').value.trim(),
     date: $('activityDate').value,
     endDate: $('activityEndDate').value,
-    cluster: $('activityCluster').value,
-    responsibleFocal: $('activityResponsibleFocal').value,
+    cluster: joinMultiValue(getCheckedValues('activityCluster')),
+    responsibleFocal: joinMultiValue(getCheckedValues('activityResponsibleFocal')),
     specialOrderRequired: $('activitySpecialOrder').value,
     description: $('activityDescription').value.trim(),
     purpose: $('activityPurpose').value.trim(),
     remarks: $('activityRemarks').value.trim()
   };
+
+  if (!activity.cluster || !activity.responsibleFocal) {
+    showToast('Please select at least one Cluster and one Responsible Focal.');
+    return;
+  }
 
   if (activity.endDate && activity.endDate < activity.date) {
     showToast('End Date cannot be earlier than Start Date.');
@@ -655,9 +694,9 @@ function openDetails(id) {
       <p><strong>Activity ID:</strong> ${escapeHTML(activity.id)}</p>
       <p><strong>Date:</strong> ${escapeHTML(prettyDate(activity.date))}</p>
       ${activity.endDate ? `<p><strong>End Date:</strong> ${escapeHTML(prettyDate(activity.endDate))}</p>` : ''}
-      <p><strong>Cluster:</strong> ${escapeHTML(activity.cluster)}</p>
+      <p><strong>Cluster:</strong> ${escapeHTML(splitMultiValue(activity.cluster).join(', '))}</p>
       <p><strong>Municipality:</strong> </p>
-      <p><strong>Responsible Focal:</strong> ${escapeHTML(activity.responsibleFocal || 'Not specified')}</p>
+      <p><strong>Responsible Focal:</strong> ${escapeHTML(splitMultiValue(activity.responsibleFocal).join(', ') || 'Not specified')}</p>
       <p><strong>Special Order Required:</strong> ${escapeHTML(activity.specialOrderRequired || 'NO')}</p>
       <p><strong>Name:</strong> ${escapeHTML(activity.description || 'None')}</p>
       <p><strong>Purpose:</strong> ${escapeHTML(activity.purpose || 'None')}</p>
