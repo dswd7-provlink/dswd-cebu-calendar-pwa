@@ -1711,3 +1711,15 @@ body {
 .so-upload-status { background: #fef3c7; color: #92400e; }
 .so-upload-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
 .so-upload-actions a { text-decoration:none; display:inline-flex; align-items:center; justify-content:center; }
+
+
+/* PAGINATION: Activities and Special Orders */
+.pagination-bar { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin:18px 0 8px; }
+.pagination-info { color:var(--muted, #64748b); font-size:12px; font-weight:600; }
+.pagination-controls { display:flex; align-items:center; justify-content:flex-end; gap:5px; flex-wrap:wrap; }
+.page-btn { min-width:34px; height:34px; padding:0 10px; border:1px solid var(--border, #e2e8f0); border-radius:8px; background:#fff; color:var(--text, #334155); font:600 12px inherit; cursor:pointer; }
+.page-btn:hover:not(:disabled) { border-color:#4F7942; color:#4F7942; background:#f4f8f2; }
+.page-btn.active { background:#4F7942; border-color:#4F7942; color:#fff; }
+.page-btn:disabled { opacity:.4; cursor:not-allowed; }
+.page-ellipsis { padding:0 3px; color:#94a3b8; }
+@media (max-width:520px) { .pagination-bar { align-items:flex-start; flex-direction:column; } .pagination-controls { justify-content:flex-start; width:100%; } .page-btn { min-width:32px; height:32px; padding:0 8px; } }
