@@ -1509,3 +1509,30 @@ label:has(#officeFilter) {
     font-style: normal !important;
   }
 }
+
+
+
+/* =========================================================
+   DSWD BACKGROUND PHOTO — subtle on desktop and mobile
+   Keep dswdbackground.png in the repository root.
+========================================================= */
+body {
+  background-color: #f5f7fb;
+  background-image:
+    linear-gradient(
+      rgba(245, 247, 251, 0.97),
+      rgba(245, 247, 251, 0.97)
+    ),
+    url("./dswdbackground.png");
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
+@media (max-width: 768px) {
+  body {
+    background-attachment: scroll;
+    background-position: center center;
+  }
+}
