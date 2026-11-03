@@ -1637,3 +1637,21 @@ body {
 .modal.show {
     display: flex !important;
 }
+
+/* MULTI-SELECT CIRCULAR CHECKBOXES */
+.multi-select-field { min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.multi-select-field .field-label { display: block; font-weight: 700; color: var(--text, #1f2937); font-size: 13px; }
+.required-mark { color: #dc2626; }
+.multi-check-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding: 10px; border: 1px solid var(--border, #e2e8f0); border-radius: 10px; background: #fff; max-height: 190px; overflow-y: auto; }
+.multi-check-option { display: flex; align-items: center; gap: 9px; min-width: 0; cursor: pointer; padding: 7px 8px; border: 1px solid transparent; border-radius: 8px; font-size: 12px; line-height: 1.35; }
+.multi-check-option:hover { background: #f0fdf4; border-color: #bbf7d0; }
+.multi-check-option input { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
+.custom-check { width: 19px; height: 19px; min-width: 19px; border: 2px solid #94a3b8; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; background: #fff; transition: .15s ease; }
+.custom-check::after { content: '✓'; color: #fff; font-size: 12px; font-weight: 800; line-height: 1; transform: scale(0); transition: .12s ease; }
+.multi-check-option input:checked + .custom-check { background: #16a34a; border-color: #16a34a; }
+.multi-check-option input:checked + .custom-check::after { transform: scale(1); }
+.multi-check-option input:focus-visible + .custom-check { outline: 3px solid rgba(22,163,74,.22); outline-offset: 2px; }
+.multi-check-option input:checked ~ .option-text { color: #166534; font-weight: 700; }
+.option-text { overflow-wrap: anywhere; }
+.field-hint, .loading-option { color: #64748b; font-size: 10px; font-weight: 500; }
+@media (max-width: 520px) { .multi-check-list { grid-template-columns: 1fr; max-height: 165px; } }
