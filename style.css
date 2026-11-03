@@ -1509,31 +1509,3 @@ label:has(#officeFilter) {
     font-style: normal !important;
   }
 }
-
-
-
-/* =========================================================
-   BACKGROUND PHOTO — desktop and mobile
-   Image file: dswdbackground.png (same repository folder)
-========================================================= */
-body {
-  background-color: #f5f7fb;
-  background-image:
-    linear-gradient(
-      rgba(245, 247, 251, 0.88),
-      rgba(245, 247, 251, 0.88)
-    ),
-    url("./dswdbackground.png");
-  background-size: cover;
-  background-position: center center;
-  background-repeat: no-repeat;
-  background-attachment: fixed;
-}
-
-/* Use normal scrolling on phones for smoother PWA performance */
-@media (max-width: 768px) {
-  body {
-    background-attachment: scroll;
-    background-position: center center;
-  }
-}
