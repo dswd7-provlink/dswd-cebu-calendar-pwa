@@ -660,7 +660,7 @@ textarea:focus {
     margin-top: 5px;
     font-weight: 400;
     color: #ffffff;
-}
+
 }
 
 .modal {
@@ -1628,4 +1628,12 @@ body {
     .summary-card strong {
         font-size: 21px !important;
     }
+}
+/* FIX: Keep all modals hidden until requested */
+.modal:not(.show) {
+    display: none !important;
+}
+
+.modal.show {
+    display: flex !important;
 }
