@@ -648,17 +648,19 @@ textarea:focus {
 }
 
 .app-footer {
-  text-align: center;
-  padding: 20px;
-  color: #ffffff;
-  font-size: 10px;
-  font-weight: 700;
+    text-align: center;
+    padding: 20px;
+    color: #ffffff;
+    font-size: 10px;
+    font-weight: 700;
 }
 
 .app-footer span {
-  display: block;
-  margin-top: 5px;
-  font-weight: 400;
+    display: block;
+    margin-top: 5px;
+    font-weight: 400;
+    color: #ffffff;
+}
 }
 
 .modal {
