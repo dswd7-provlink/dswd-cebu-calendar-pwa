@@ -1706,3 +1706,8 @@ body {
     overflow: visible !important;
   }
 }
+
+/* Special Order PDF upload */
+.so-upload-status { background: #fef3c7; color: #92400e; }
+.so-upload-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+.so-upload-actions a { text-decoration:none; display:inline-flex; align-items:center; justify-content:center; }
