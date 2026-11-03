@@ -1536,3 +1536,94 @@ body {
     background-position: center center;
   }
 }
+
+/* ==========================================
+   KPI CARDS – SOLID COLORS & CENTERED TEXT
+========================================== */
+
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.summary-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+
+    min-width: 0;
+    min-height: 95px;
+    padding: 12px 8px;
+
+    border: none !important;
+    border-radius: 12px;
+    color: #ffffff !important;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
+}
+
+/* Individual card colors */
+.summary-card:nth-child(1) {
+    background: #2563EB !important;
+}
+
+.summary-card:nth-child(2) {
+    background: #DC2626 !important;
+}
+
+.summary-card:nth-child(3) {
+    background: #0F766E !important;
+}
+
+.summary-card:nth-child(4) {
+    background: #991B1B !important;
+}
+
+/* KPI labels */
+.summary-card .summary-label {
+    color: #ffffff !important;
+    font-size: 10px;
+    font-weight: 800;
+    text-align: center;
+    letter-spacing: 0.4px;
+    line-height: 1.2;
+}
+
+/* KPI numbers */
+.summary-card strong {
+    color: #ffffff !important;
+    font-size: 34px !important;
+    font-weight: 900;
+    line-height: 1.1;
+    text-align: center;
+}
+
+/* Hide secondary captions */
+.summary-card .summary-note {
+    display: none !important;
+}
+
+/* Mobile layout – retain one horizontal row */
+@media (max-width: 600px) {
+    .summary-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+        gap: 5px !important;
+    }
+
+    .summary-card {
+        min-height: 65px !important;
+        padding: 7px 2px !important;
+        border-radius: 8px;
+    }
+
+    .summary-card .summary-label {
+        font-size: 7px !important;
+        letter-spacing: 0 !important;
+    }
+
+    .summary-card strong {
+        font-size: 21px !important;
+    }
+}
