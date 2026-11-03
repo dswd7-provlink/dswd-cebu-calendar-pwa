@@ -531,10 +531,11 @@ function requiresSpecialOrder(activity) {
 function activityCard(activity, showSO = false) {
   return `<article class="record-card" data-activity-id="${escapeHTML(activity.id)}">
     <div class="record-card-top"><span class="cluster-chip" style="--cluster:${clusterColor(splitMultiValue(activity.cluster)[0])}">${escapeHTML(splitMultiValue(activity.cluster).join(', ') || 'No cluster')}</span>
-      ${showSO ? '<span class="so-required-chip">SPECIAL ORDER REQUIRED</span>' : `<span class="status-badge ${statusClass(activity.status)}">${escapeHTML(activity.status || 'SCHEDULED')}</span>`}</div>
+      ${showSO ? `<span class="so-required-chip">SPECIAL ORDER REQUIRED</span><span class="status-badge so-upload-status">${escapeHTML(activity.specialOrderStatus || 'FOR PREPARATION')}</span>` : `<span class="status-badge ${statusClass(activity.status)}">${escapeHTML(activity.status || 'SCHEDULED')}</span>`}</div>
     <h3>${escapeHTML(activity.title || 'Untitled activity')}</h3>
     <p class="record-date">${escapeHTML(prettyDate(activity.startDate || activity.date))}${activity.endDate ? ' – ' + escapeHTML(prettyDate(activity.endDate)) : ''}</p>
     <div class="record-meta"><span>♙ ${escapeHTML(splitMultiValue(activity.responsibleFocal).join(', ') || 'Focal not specified')}</span></div>
+    ${showSO ? `<div class="so-upload-actions">${activity.specialOrderFileUrl ? `<a class="btn-secondary" href="${escapeHTML(activity.specialOrderFileUrl)}" target="_blank" rel="noopener">View PDF</a>` : ''}<button type="button" class="btn-primary" data-so-upload="${escapeHTML(activity.id)}">${activity.specialOrderFileUrl ? 'Replace PDF' : 'Upload Signed PDF'}</button></div>` : ''}
   </article>`;
 }
 
@@ -543,6 +544,27 @@ function renderAllActivities() {
   const list = [...activities].sort((a,b) => String(b.startDate || b.date || '').localeCompare(String(a.startDate || a.date || '')))
     .filter(a => [a.title, a.cluster, a.responsibleFocal, a.status].join(' ').toLowerCase().includes(query));
   $('allActivitiesList').innerHTML = list.length ? list.map(a => activityCard(a)).join('') : '<div class="empty-state">No matching activities found.</div>';
+}
+
+async function uploadSpecialOrderForActivity(activityId, file) {
+  if (!file) return;
+  if (file.type !== 'application/pdf' && !/\.pdf$/i.test(file.name)) { showToast('Please select a PDF file.'); return; }
+  if (file.size > 5 * 1024 * 1024) { showToast('PDF must not exceed 5 MB.'); return; }
+  const activity = activities.find(a => String(a.id) === String(activityId));
+  if (!activity || !requiresSpecialOrder(activity)) { showToast('This activity does not require a Special Order.'); return; }
+  try {
+    showToast('Uploading Special Order PDF...');
+    const base64 = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result).split(',')[1] || '');
+      reader.onerror = () => reject(new Error('Unable to read the selected PDF.'));
+      reader.readAsDataURL(file);
+    });
+    await apiRequest('uploadSpecialOrder', [activityId, file.name, base64]);
+    showToast('Special Order uploaded successfully.');
+    await loadActivities();
+  } catch (error) { showToast(error.message || 'Upload failed.'); }
+  finally { $('specialOrderFileInput').value = ''; }
 }
 
 function renderSpecialOrders() {
@@ -843,7 +865,8 @@ function bindEvents() {
   $('activitySearch').addEventListener('input', renderAllActivities);
   ['soClusterFilter', 'soMonthFilter', 'soFocalFilter'].forEach(id => $(id).addEventListener('change', renderSpecialOrders));
   $('clearSoFilters').addEventListener('click', () => { $('soClusterFilter').value = ''; $('soMonthFilter').value = ''; $('soFocalFilter').value = ''; renderSpecialOrders(); });
-  ['allActivitiesList', 'specialOrdersList'].forEach(id => $(id).addEventListener('click', event => { const card = event.target.closest('[data-activity-id]'); if (card) openDetails(card.dataset.activityId); }));
+  ['allActivitiesList', 'specialOrdersList'].forEach(id => $(id).addEventListener('click', event => { const upload = event.target.closest('[data-so-upload]'); if (upload) { event.stopPropagation(); $('specialOrderFileInput').dataset.activityId = upload.dataset.soUpload; $('specialOrderFileInput').click(); return; } if (event.target.closest('a')) return; const card = event.target.closest('[data-activity-id]'); if (card) openDetails(card.dataset.activityId); }));
+  $('specialOrderFileInput').addEventListener('change', event => { const file = event.target.files && event.target.files[0]; if (file) uploadSpecialOrderForActivity(event.target.dataset.activityId, file); });
   $('addActivityBtn').addEventListener('click', () => openActivityModal());
   $('closeModalBtn').addEventListener('click', closeActivityModal);
   $('cancelModalBtn').addEventListener('click', closeActivityModal);
