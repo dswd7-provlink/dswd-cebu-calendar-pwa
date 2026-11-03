@@ -1520,8 +1520,8 @@ body {
   background-color: #f5f7fb;
   background-image:
     linear-gradient(
-      rgba(245, 247, 251, 0.2),
-      rgba(245, 247, 251, 0.2)
+      rgba(245, 247, 251, 1.0),
+      rgba(245, 247, 251, 1.0)
     ),
     url("./dswdbackground.png");
   background-size: cover;
