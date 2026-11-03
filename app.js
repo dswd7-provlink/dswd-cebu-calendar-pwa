@@ -7,13 +7,14 @@
 const API_URL = 'https://dswd-cebu-calendar-api.cebu-bdm-api.workers.dev';
 
 const CLUSTER_COLORS = {
-  'CLUSTER 1A': '#2563EB',
+   'CLUSTER 1A': '#2563EB',
   'CLUSTER 1B': '#0D9488',
   'CLUSTER 2A': '#7C3AED',
   'CLUSTER 2B': '#D97706',
   'CLUSTER 2C': '#DB2777',
   'CLUSTER OFFICE 1': '#475569',
-  'CLUSTER OFFICE 2': '#0891B2'
+  'CLUSTER OFFICE 2': '#0891B2',
+  'POO OFFICE': '#16A34A'
 };
 
 let activities = [];
