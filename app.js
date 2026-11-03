@@ -14,6 +14,7 @@ const CLUSTER_COLORS = {
   'CLUSTER 2C': '#DB2777',
   'CLUSTER OFFICE 1': '#475569',
   'CLUSTER OFFICE 2': '#0891B2'
+  'POO OFFICE': '#00FF00'
 };
 
 let activities = [];
