@@ -577,6 +577,7 @@ function openActivityModal(activity = null) {
     $('activitySpecialOrder').value =
       String(activity.specialOrderRequired || 'NO').toUpperCase();
     $('activityDescription').value = activity.description || '';
+    $('activityPurpose').value = activity.purpose || '';
     $('activityRemarks').value = activity.remarks || '';
   } else {
     $('activityDate').value = isoDate(new Date());
@@ -604,6 +605,7 @@ async function saveActivity(event) {
     responsibleFocal: $('activityResponsibleFocal').value,
     specialOrderRequired: $('activitySpecialOrder').value,
     description: $('activityDescription').value.trim(),
+    purpose: $('activityPurpose').value.trim(),
     remarks: $('activityRemarks').value.trim()
   };
 
@@ -656,7 +658,8 @@ function openDetails(id) {
       <p><strong>Municipality:</strong> </p>
       <p><strong>Responsible Focal:</strong> ${escapeHTML(activity.responsibleFocal || 'Not specified')}</p>
       <p><strong>Special Order Required:</strong> ${escapeHTML(activity.specialOrderRequired || 'NO')}</p>
-                  <p><strong>Description:</strong> ${escapeHTML(activity.description || 'None')}</p>
+      <p><strong>Name:</strong> ${escapeHTML(activity.description || 'None')}</p>
+      <p><strong>Purpose:</strong> ${escapeHTML(activity.purpose || 'None')}</p>
       <p><strong>Status:</strong>
         <span class="status-badge ${statusClass(activity.status)}">
           ${escapeHTML(activity.status)}
