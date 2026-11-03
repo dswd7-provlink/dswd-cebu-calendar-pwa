@@ -9,7 +9,7 @@
   <title>DSWD Cebu Activity Calendar</title>
 
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="style.css?v=desktop-nav-2">
+  <link rel="stylesheet" href="style.css?v=multi-select-1">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -239,17 +239,21 @@
         </div>
 
         <div class="form-row">
-          <label>
-            Cluster
-            <select id="activityCluster" required><option value="">Select Cluster</option></select>
-          </label>
+          <div class="multi-select-field">
+            <span class="field-label">Cluster <span class="required-mark">*</span></span>
+            <div id="activityCluster" class="multi-check-list" role="group" aria-label="Select one or more clusters">
+              <span class="loading-option">Loading clusters...</span>
+            </div>
+            <small class="field-hint">Select all clusters involved in this activity.</small>
+          </div>
 
-          <label>
-            Responsible Focal
-            <select id="activityResponsibleFocal" required>
-              <option value="">Loading focal list...</option>
-            </select>
-          </label>
+          <div class="multi-select-field">
+            <span class="field-label">Responsible Focal <span class="required-mark">*</span></span>
+            <div id="activityResponsibleFocal" class="multi-check-list" role="group" aria-label="Select one or more responsible focal persons">
+              <span class="loading-option">Loading focal list...</span>
+            </div>
+            <small class="field-hint">You may select more than one responsible focal person.</small>
+          </div>
         </div>
 
         <label>
