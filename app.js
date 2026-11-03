@@ -24,6 +24,9 @@ let currentMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 let selectedDate = '';
 let selectedActivity = null;
 let selectedCluster = '';
+const PAGE_SIZE = 10;
+let activitiesPage = 1;
+let specialOrdersPage = 1;
 
 const $ = id => document.getElementById(id);
 
@@ -539,11 +542,38 @@ function activityCard(activity, showSO = false) {
   </article>`;
 }
 
+function renderPagination(containerId, totalItems, currentPage, onPageChange) {
+  const container = $(containerId);
+  if (!container) return;
+  const totalPages = Math.ceil(totalItems / PAGE_SIZE);
+  if (totalPages <= 1) { container.innerHTML = ''; return; }
+  const start = (currentPage - 1) * PAGE_SIZE + 1;
+  const end = Math.min(currentPage * PAGE_SIZE, totalItems);
+  let buttons = `<button type="button" class="page-btn" data-page="${currentPage - 1}" ${currentPage === 1 ? 'disabled' : ''}>Previous</button>`;
+  for (let page = 1; page <= totalPages; page++) {
+    if (totalPages > 7 && page > 2 && page < totalPages - 1 && Math.abs(page - currentPage) > 1) {
+      if (page === 3 || page === totalPages - 2) buttons += '<span class="page-ellipsis">…</span>';
+      continue;
+    }
+    buttons += `<button type="button" class="page-btn ${page === currentPage ? 'active' : ''}" data-page="${page}" ${page === currentPage ? 'aria-current="page"' : ''}>${page}</button>`;
+  }
+  buttons += `<button type="button" class="page-btn" data-page="${currentPage + 1}" ${currentPage === totalPages ? 'disabled' : ''}>Next</button>`;
+  container.innerHTML = `<span class="pagination-info">Showing ${start}–${end} of ${totalItems}</span><div class="pagination-controls">${buttons}</div>`;
+  container.querySelectorAll('[data-page]').forEach(button => button.addEventListener('click', () => {
+    const nextPage = Number(button.dataset.page);
+    if (nextPage >= 1 && nextPage <= totalPages) onPageChange(nextPage);
+  }));
+}
+
 function renderAllActivities() {
   const query = String($('activitySearch')?.value || '').trim().toLowerCase();
   const list = [...activities].sort((a,b) => String(b.startDate || b.date || '').localeCompare(String(a.startDate || a.date || '')))
     .filter(a => [a.title, a.cluster, a.responsibleFocal, a.status].join(' ').toLowerCase().includes(query));
-  $('allActivitiesList').innerHTML = list.length ? list.map(a => activityCard(a)).join('') : '<div class="empty-state">No matching activities found.</div>';
+  const totalPages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
+  activitiesPage = Math.min(activitiesPage, totalPages);
+  const pageItems = list.slice((activitiesPage - 1) * PAGE_SIZE, activitiesPage * PAGE_SIZE);
+  $('allActivitiesList').innerHTML = list.length ? pageItems.map(a => activityCard(a)).join('') : '<div class="empty-state">No matching activities found.</div>';
+  renderPagination('activitiesPagination', list.length, activitiesPage, page => { activitiesPage = page; renderAllActivities(); });
 }
 
 async function uploadSpecialOrderForActivity(activityId, file) {
@@ -585,7 +615,11 @@ function renderSpecialOrders() {
       (!focal || hasMultiValue(a.responsibleFocal, focal));
   }).sort((a,b) => String(a.startDate || a.date || '').localeCompare(String(b.startDate || b.date || '')));
   $('soResultCount').textContent = `${list.length} ${list.length === 1 ? 'activity' : 'activities'}`;
-  $('specialOrdersList').innerHTML = list.length ? list.map(a => activityCard(a, true)).join('') : '<div class="empty-state">No activities requiring a Special Order match these filters.</div>';
+  const totalPages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
+  specialOrdersPage = Math.min(specialOrdersPage, totalPages);
+  const pageItems = list.slice((specialOrdersPage - 1) * PAGE_SIZE, specialOrdersPage * PAGE_SIZE);
+  $('specialOrdersList').innerHTML = list.length ? pageItems.map(a => activityCard(a, true)).join('') : '<div class="empty-state">No activities requiring a Special Order match these filters.</div>';
+  renderPagination('specialOrdersPagination', list.length, specialOrdersPage, page => { specialOrdersPage = page; renderSpecialOrders(); });
 }
 
 function switchView(view) {
@@ -862,9 +896,9 @@ async function performActivityAction(action) {
 
 function bindEvents() {
   document.querySelectorAll('.app-tab').forEach(tab => tab.addEventListener('click', () => switchView(tab.dataset.view)));
-  $('activitySearch').addEventListener('input', renderAllActivities);
-  ['soClusterFilter', 'soMonthFilter', 'soFocalFilter'].forEach(id => $(id).addEventListener('change', renderSpecialOrders));
-  $('clearSoFilters').addEventListener('click', () => { $('soClusterFilter').value = ''; $('soMonthFilter').value = ''; $('soFocalFilter').value = ''; renderSpecialOrders(); });
+  $('activitySearch').addEventListener('input', () => { activitiesPage = 1; renderAllActivities(); });
+  ['soClusterFilter', 'soMonthFilter', 'soFocalFilter'].forEach(id => $(id).addEventListener('change', () => { specialOrdersPage = 1; renderSpecialOrders(); }));
+  $('clearSoFilters').addEventListener('click', () => { $('soClusterFilter').value = ''; $('soMonthFilter').value = ''; $('soFocalFilter').value = ''; specialOrdersPage = 1; renderSpecialOrders(); });
   ['allActivitiesList', 'specialOrdersList'].forEach(id => $(id).addEventListener('click', event => { const upload = event.target.closest('[data-so-upload]'); if (upload) { event.stopPropagation(); $('specialOrderFileInput').dataset.activityId = upload.dataset.soUpload; $('specialOrderFileInput').click(); return; } if (event.target.closest('a')) return; const card = event.target.closest('[data-activity-id]'); if (card) openDetails(card.dataset.activityId); }));
   $('specialOrderFileInput').addEventListener('change', event => { const file = event.target.files && event.target.files[0]; if (file) uploadSpecialOrderForActivity(event.target.dataset.activityId, file); });
   $('addActivityBtn').addEventListener('click', () => openActivityModal());
