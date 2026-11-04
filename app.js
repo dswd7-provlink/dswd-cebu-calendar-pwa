@@ -534,7 +534,7 @@ function requiresSpecialOrder(activity) {
 function activityCard(activity, showSO = false) {
   return `<article class="record-card" data-activity-id="${escapeHTML(activity.id)}">
     <div class="record-card-top"><span class="cluster-chip" style="--cluster:${clusterColor(splitMultiValue(activity.cluster)[0])}">${escapeHTML(splitMultiValue(activity.cluster).join(', ') || 'No cluster')}</span>
-      ${showSO ? `<span class="so-required-chip">SPECIAL ORDER REQUIRED</span><span class="status-badge so-upload-status">${escapeHTML(activity.specialOrderStatus || 'FOR PREPARATION')}</span>` : `<span class="status-badge ${statusClass(activity.status)}">${escapeHTML(activity.status || 'SCHEDULED')}</span>`}</div>
+      ${showSO ? `<span class="so-required-chip">SPECIAL ORDER REQUIRED</span><span class="status-badge so-upload-status ${String(activity.specialOrderStatus || 'FOR PREPARATION').toLowerCase().replace(/\\s+/g, '-') }">${escapeHTML(activity.specialOrderStatus || 'FOR PREPARATION')}</span>` : `<span class="status-badge ${statusClass(activity.status)}">${escapeHTML(activity.status || 'SCHEDULED')}</span>`}</div>
     <h3>${escapeHTML(activity.title || 'Untitled activity')}</h3>
     <p class="record-date">${escapeHTML(prettyDate(activity.startDate || activity.date))}${activity.endDate ? ' – ' + escapeHTML(prettyDate(activity.endDate)) : ''}</p>
     <div class="record-meta"><span>♙ ${escapeHTML(splitMultiValue(activity.responsibleFocal).join(', ') || 'Focal not specified')}</span></div>
@@ -755,6 +755,9 @@ function openDetails(id) {
       <p><strong>Municipality:</strong> </p>
       <p><strong>Responsible Focal:</strong> ${escapeHTML(splitMultiValue(activity.responsibleFocal).join(', ') || 'Not specified')}</p>
       <p><strong>Special Order Required:</strong> ${escapeHTML(activity.specialOrderRequired || 'NO')}</p>
+      ${requiresSpecialOrder(activity) ? `<p><strong>Special Order Progress:</strong> <span class="status-badge so-upload-status ${String(activity.specialOrderStatus || 'FOR PREPARATION').toLowerCase().replace(/\\s+/g, '-')}">${escapeHTML(activity.specialOrderStatus || 'FOR PREPARATION')}</span></p>
+      ${activity.specialOrderDraftedAt ? `<p><strong>Marked as drafted:</strong> ${escapeHTML(activity.specialOrderDraftedAt)}</p>` : ''}
+      ${activity.specialOrderDraftedBy ? `<p><strong>Marked by:</strong> ${escapeHTML(activity.specialOrderDraftedBy)}</p>` : ''}` : ''}
       <p><strong>Name:</strong> ${escapeHTML(activity.description || 'None')}</p>
       <p><strong>Purpose:</strong> ${escapeHTML(activity.purpose || 'None')}</p>
       <p><strong>Status:</strong>
@@ -772,6 +775,10 @@ function openDetails(id) {
 
 function renderActivityActions(activity) {
   const actions = [];
+
+  if (requiresSpecialOrder(activity) && activity.specialOrderStatus === 'FOR PREPARATION') {
+    actions.push(`<button class="btn-primary" data-action="mark-so-drafted">Mark as Drafted</button>`);
+  }
 
   if (activity.status !== 'CANCELLED') {
     actions.push(`<button class="btn-secondary" data-action="edit">Edit</button>`);
@@ -813,6 +820,16 @@ async function performActivityAction(action) {
   let result;
 
   try {
+    if (action === 'mark-so-drafted') {
+      if (!confirm('Confirm that the Special Order for this activity has already been drafted?')) return;
+      await apiRequest('markSpecialOrderDrafted', [id]);
+      showToast('Special Order marked as drafted.');
+      await loadActivities();
+      const refreshed = activities.find(a => String(a.id) === String(id));
+      if (refreshed) openDetails(id);
+      return;
+    }
+
     if (action === 'edit') {
       closeDetailsModal();
       openActivityModal(activity);
