@@ -890,6 +890,192 @@ async function submitReschedule(event) {
 }
 
 /* =========================================================
+   SHARED MODERN ACTION + HISTORY MODALS
+========================================================= */
+
+let pendingActivityAction = null;
+
+function openActionModal(action, activity) {
+  if (!activity) return;
+  selectedActivity = activity;
+  pendingActivityAction = action;
+
+  const config = {
+    'mark-so-drafted': {
+      title: 'Mark Special Order as Drafted',
+      subtitle: 'Confirm that the Special Order document has been prepared.',
+      button: 'Mark as Drafted',
+      icon: '✎',
+      message: 'This will update the Special Order progress for this activity.',
+      remarksLabel: '', placeholder: '', required: false
+    },
+    done: {
+      title: 'Mark Activity as Done',
+      subtitle: 'Confirm that this activity has been completed.',
+      button: 'Mark as Done', icon: '✓',
+      message: 'The activity will move to the Completed tab. Its record and history will be retained.',
+      remarksLabel: 'Completion remarks', placeholder: 'Add completion notes (optional)...', required: false
+    },
+    reopen: {
+      title: 'Reopen Activity',
+      subtitle: 'Return this completed activity to the active schedule.',
+      button: 'Reopen Activity', icon: '↺',
+      message: 'The activity status will return to scheduled.',
+      remarksLabel: 'Reason for reopening', placeholder: 'Enter reason (optional)...', required: false
+    },
+    cancel: {
+      title: 'Cancel Activity',
+      subtitle: 'Please provide the reason for cancellation.',
+      button: 'Confirm Cancellation', icon: '!',
+      message: 'The activity will be marked as cancelled and retained in the records.',
+      remarksLabel: 'Cancellation reason', placeholder: 'Enter the reason for cancellation...', required: true
+    },
+    restore: {
+      title: 'Restore Activity',
+      subtitle: 'Restore this cancelled activity to the schedule.',
+      button: 'Restore Activity', icon: '↻',
+      message: 'The activity will become active again.',
+      remarksLabel: 'Remarks', placeholder: 'Optional restoration remarks...', required: false
+    },
+    delete: {
+      title: 'Delete Activity',
+      subtitle: 'This action permanently removes the activity record.',
+      button: 'Delete Permanently', icon: '×',
+      message: 'This cannot be undone. Please confirm that you want to permanently delete this activity.',
+      remarksLabel: '', placeholder: '', required: false, danger: true
+    }
+  }[action];
+
+  if (!config) return;
+  $('actionModalTitle').textContent = config.title;
+  $('actionModalSubtitle').textContent = config.subtitle;
+  $('actionModalIcon').textContent = config.icon;
+  $('actionModalActivity').textContent = activity.title || 'Untitled activity';
+  $('actionModalActivityId').textContent = activity.id || '';
+  $('actionModalMessage').textContent = config.message;
+  $('actionRemarksLabel').textContent = config.remarksLabel;
+  $('actionRemarks').placeholder = config.placeholder;
+  $('actionRemarks').value = '';
+  $('actionRemarks').required = !!config.required;
+  $('actionRemarksGroup').hidden = !config.remarksLabel;
+  $('actionModalError').hidden = true;
+
+  const confirmButton = $('confirmActionBtn');
+  confirmButton.textContent = config.button;
+  confirmButton.classList.toggle('btn-danger', !!config.danger);
+  confirmButton.classList.toggle('btn-primary', !config.danger);
+  $('actionModalIcon').classList.toggle('danger', !!config.danger);
+  $('actionModal').classList.add('show');
+  $('actionModal').setAttribute('aria-hidden', 'false');
+  $('actionRemarks').focus();
+}
+
+function closeActionModal() {
+  $('actionModal').classList.remove('show');
+  $('actionModal').setAttribute('aria-hidden', 'true');
+  pendingActivityAction = null;
+}
+
+async function submitActionModal(event) {
+  event.preventDefault();
+  const activity = selectedActivity;
+  const action = pendingActivityAction;
+  if (!activity || !action) return;
+
+  const id = activity.id;
+  const remarks = $('actionRemarks').value.trim();
+  const errorBox = $('actionModalError');
+  const button = $('confirmActionBtn');
+  if (action === 'cancel' && !remarks) {
+    errorBox.textContent = 'Please enter a cancellation reason.';
+    errorBox.hidden = false;
+    return;
+  }
+
+  button.disabled = true;
+  button.textContent = 'Processing...';
+  errorBox.hidden = true;
+  try {
+    if (action === 'mark-so-drafted') {
+      await apiRequest('markSpecialOrderDrafted', [id]);
+    } else if (action === 'done') {
+      await apiRequest('markActivityDone', [id, remarks]);
+    } else if (action === 'reopen') {
+      await apiRequest('reopenActivity', [id, remarks]);
+    } else if (action === 'cancel') {
+      await apiRequest('cancelActivity', [id, remarks]);
+    } else if (action === 'restore') {
+      await apiRequest('restoreActivity', [id, remarks || 'Activity restored.']);
+    } else if (action === 'delete') {
+      await apiRequest('deleteActivity', [id]);
+    }
+
+    closeActionModal();
+    closeDetailsModal();
+    const messages = {
+      'mark-so-drafted': 'Special Order marked as drafted.',
+      done: 'Activity marked as done.',
+      reopen: 'Activity reopened successfully.',
+      cancel: 'Activity cancelled successfully.',
+      restore: 'Activity restored successfully.',
+      delete: 'Activity deleted successfully.'
+    };
+    showToast(messages[action] || 'Activity updated successfully.');
+    await loadActivities();
+    if (action === 'mark-so-drafted') {
+      const refreshed = activities.find(item => String(item.id) === String(id));
+      if (refreshed) openDetails(id);
+    }
+  } catch (error) {
+    errorBox.textContent = error.message || 'Unable to complete this action.';
+    errorBox.hidden = false;
+    console.error(error);
+  } finally {
+    button.disabled = false;
+    const labels = {
+      'mark-so-drafted': 'Mark as Drafted', done: 'Mark as Done', reopen: 'Reopen Activity',
+      cancel: 'Confirm Cancellation', restore: 'Restore Activity', delete: 'Delete Permanently'
+    };
+    button.textContent = labels[action] || 'Confirm';
+  }
+}
+
+async function openHistoryModal(activity) {
+  if (!activity) return;
+  $('historyActivityName').textContent = activity.title || 'Untitled activity';
+  $('historyActivityId').textContent = activity.id || '';
+  $('historyTimeline').innerHTML = '<div class="modal-loading"><span class="loading-spinner"></span> Loading activity history...</div>';
+  $('historyModal').classList.add('show');
+  $('historyModal').setAttribute('aria-hidden', 'false');
+  try {
+    const response = await apiRequest('getActivityHistory', [activity.id]);
+    const history = response.data || response.result || response.history || response;
+    if (!Array.isArray(history) || !history.length) {
+      $('historyTimeline').innerHTML = '<div class="modal-empty"><span>◷</span><strong>No history available</strong><p>No recorded changes were found for this activity.</p></div>';
+      return;
+    }
+    $('historyTimeline').innerHTML = history.slice().reverse().map(item => `
+      <article class="history-entry">
+        <span class="history-dot"></span>
+        <div class="history-entry-content">
+          <strong>${escapeHTML(item.action || item.activity || 'Activity update')}</strong>
+          <time>${escapeHTML(item.timestamp || item.date || '')}</time>
+          ${item.remarks ? `<p>${escapeHTML(item.remarks)}</p>` : ''}
+          ${item.performedBy ? `<small>By ${escapeHTML(item.performedBy)}</small>` : ''}
+        </div>
+      </article>
+    `).join('');
+  } catch (error) {
+    $('historyTimeline').innerHTML = `<div class="modal-error">${escapeHTML(error.message || 'Unable to load activity history.')}</div>`;
+  }
+}
+
+function closeHistoryModal() {
+  $('historyModal').classList.remove('show');
+  $('historyModal').setAttribute('aria-hidden', 'true');
+}
+
+/* =========================================================
    ACTIVITY ACTIONS
 ========================================================= */
 
@@ -897,80 +1083,21 @@ async function performActivityAction(action) {
   const activity = selectedActivity;
   if (!activity) return;
 
-  const id = activity.id;
-  let result;
-
-  try {
-    if (action === 'mark-so-drafted') {
-      if (!confirm('Confirm that the Special Order for this activity has already been drafted?')) return;
-      await apiRequest('markSpecialOrderDrafted', [id]);
-      showToast('Special Order marked as drafted.');
-      await loadActivities();
-      const refreshed = activities.find(a => String(a.id) === String(id));
-      if (refreshed) openDetails(id);
-      return;
-    }
-
-    if (action === 'edit') {
-      closeDetailsModal();
-      openActivityModal(activity);
-      return;
-    }
-
-    if (action === 'done') {
-      const remarks = prompt('Enter completion remarks (optional):') || '';
-      result = await apiRequest('markActivityDone', [id, remarks]);
-    }
-
-    if (action === 'reopen') {
-      const remarks = prompt('Reason for reopening (optional):') || '';
-      result = await apiRequest('reopenActivity', [id, remarks]);
-    }
-
-    if (action === 'cancel') {
-      const reason = prompt('Enter cancellation reason:');
-      if (reason === null) return;
-      result = await apiRequest('cancelActivity', [id, reason]);
-    }
-
-    if (action === 'restore') {
-      if (!confirm('Restore this cancelled activity?')) return;
-      result = await apiRequest('restoreActivity', [id, 'Activity restored.']);
-    }
-
-    if (action === 'reschedule') {
-      openRescheduleModal(activity);
-      return;
-    }
-
-    if (action === 'delete') {
-      if (!confirm('Permanently delete this activity? This cannot be undone.')) return;
-      result = await apiRequest('deleteActivity', [id]);
-    }
-
-    if (action === 'history') {
-      const historyResult = await apiRequest('getActivityHistory', [id]);
-      const history = historyResult.data || historyResult.result || historyResult;
-
-      if (!Array.isArray(history) || !history.length) {
-        alert('No activity history found.');
-      } else {
-        alert(history.map(item =>
-          `${item.timestamp}\n${item.action}\n${item.remarks}`
-        ).join('\n\n----------------\n\n'));
-      }
-      return;
-    }
-
-    if (result) {
-      showToast('Activity updated successfully.');
-      closeDetailsModal();
-      await loadActivities();
-    }
-
-  } catch (error) {
-    showToast(error.message);
-    console.error(error);
+  if (action === 'edit') {
+    closeDetailsModal();
+    openActivityModal(activity);
+    return;
+  }
+  if (action === 'reschedule') {
+    openRescheduleModal(activity);
+    return;
+  }
+  if (action === 'history') {
+    openHistoryModal(activity);
+    return;
+  }
+  if (['mark-so-drafted', 'done', 'reopen', 'cancel', 'restore', 'delete'].includes(action)) {
+    openActionModal(action, activity);
   }
 }
 
@@ -998,6 +1125,10 @@ function bindEvents() {
   $('closeRescheduleBtn').addEventListener('click', closeRescheduleModal);
   $('cancelRescheduleBtn').addEventListener('click', closeRescheduleModal);
   $('rescheduleForm').addEventListener('submit', submitReschedule);
+  $('actionForm').addEventListener('submit', submitActionModal);
+  $('closeActionModalBtn').addEventListener('click', closeActionModal);
+  $('cancelActionBtn').addEventListener('click', closeActionModal);
+  $('closeHistoryModalBtn').addEventListener('click', closeHistoryModal);
   $('rescheduleStartDate').addEventListener('change', () => {
     $('rescheduleEndDate').min = $('rescheduleStartDate').value;
     if ($('rescheduleEndDate').value && $('rescheduleEndDate').value < $('rescheduleStartDate').value) {
@@ -1007,8 +1138,17 @@ function bindEvents() {
   $('rescheduleModal').addEventListener('click', event => {
     if (event.target === $('rescheduleModal')) closeRescheduleModal();
   });
+  $('actionModal').addEventListener('click', event => {
+    if (event.target === $('actionModal')) closeActionModal();
+  });
+  $('historyModal').addEventListener('click', event => {
+    if (event.target === $('historyModal')) closeHistoryModal();
+  });
   document.addEventListener('keydown', event => {
-    if (event.key === 'Escape' && $('rescheduleModal').classList.contains('show')) closeRescheduleModal();
+    if (event.key !== 'Escape') return;
+    if ($('rescheduleModal').classList.contains('show')) closeRescheduleModal();
+    if ($('actionModal').classList.contains('show')) closeActionModal();
+    if ($('historyModal').classList.contains('show')) closeHistoryModal();
   });
   $('closeCompletedBtn').addEventListener('click', () => {
     $('completedModal').classList.remove('show');
