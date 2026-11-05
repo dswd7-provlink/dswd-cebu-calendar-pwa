@@ -13,6 +13,63 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    /* Modern in-app reschedule dialog */
+    .reschedule-content {
+      width: min(100%, 500px);
+      padding: 26px;
+      border: 1px solid #e2e8f0;
+      border-radius: 18px;
+      box-shadow: 0 24px 70px rgba(15, 23, 42, .24);
+    }
+    .reschedule-intro {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 2px 0 20px;
+      padding: 12px 14px;
+      border: 1px solid #dbeafe;
+      border-radius: 12px;
+      background: #eff6ff;
+    }
+    .reschedule-icon {
+      display: grid;
+      place-items: center;
+      flex: 0 0 38px;
+      width: 38px;
+      height: 38px;
+      border-radius: 11px;
+      background: #dbeafe;
+      color: #1d4ed8;
+      font-size: 19px;
+    }
+    .reschedule-intro strong { display:block; color:#173b68; font-size:13px; }
+    .reschedule-intro span { display:block; color:#64748b; font-size:11px; margin-top:3px; }
+    .reschedule-form { display:flex; flex-direction:column; gap:15px; }
+    .reschedule-form label { display:flex; flex-direction:column; gap:7px; color:#334155; font-size:12px; font-weight:700; }
+    .reschedule-form input,
+    .reschedule-form textarea {
+      width:100%; box-sizing:border-box; border:1px solid #cbd5e1; border-radius:10px;
+      background:#fff; color:#0f172a; padding:11px 12px; font:500 13px Inter, sans-serif;
+      outline:none; transition:border-color .15s, box-shadow .15s;
+    }
+    .reschedule-form input:focus,
+    .reschedule-form textarea:focus { border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,.12); }
+    .reschedule-form input[type="date"] { min-height:43px; }
+    .reschedule-form textarea { resize:vertical; min-height:78px; }
+    .reschedule-form .form-row { gap:12px; }
+    .reschedule-form .field-hint { color:#94a3b8; font-size:10px; font-weight:400; }
+    .reschedule-actions { display:flex; justify-content:flex-end; gap:9px; padding-top:5px; }
+    .reschedule-actions button { min-height:40px; padding:10px 16px; border-radius:9px; font-weight:700; }
+    @media (max-width:600px) {
+      .reschedule-content { padding:20px; border-radius:17px 17px 0 0; }
+      .reschedule-form .form-row { grid-template-columns:1fr; }
+      .reschedule-actions { flex-direction:column-reverse; }
+      .reschedule-actions button { width:100%; }
+    }
+  </style>
+
 </head>
 
 <body>
@@ -309,6 +366,47 @@
 
       <div id="activityDetails"></div>
       <div id="activityActions" class="modal-actions"></div>
+    </div>
+  </div>
+
+  <!-- Reschedule Activity -->
+  <div id="rescheduleModal" class="modal" aria-hidden="true">
+    <div class="modal-content reschedule-content" role="dialog" aria-modal="true" aria-labelledby="rescheduleTitle">
+      <div class="modal-heading">
+        <div>
+          <h2 id="rescheduleTitle">Reschedule Activity</h2>
+          <p>Choose the updated schedule for this activity.</p>
+        </div>
+        <button id="closeRescheduleBtn" class="close-btn" type="button" aria-label="Close">×</button>
+      </div>
+
+      <div class="reschedule-intro">
+        <div class="reschedule-icon" aria-hidden="true">▦</div>
+        <div>
+          <strong id="rescheduleActivityName">Activity</strong>
+          <span id="rescheduleActivityId">Activity ID</span>
+        </div>
+      </div>
+
+      <form id="rescheduleForm" class="reschedule-form">
+        <div class="form-row">
+          <label for="rescheduleStartDate">New start date
+            <input type="date" id="rescheduleStartDate" required>
+          </label>
+          <label for="rescheduleEndDate">New end date
+            <input type="date" id="rescheduleEndDate">
+            <span class="field-hint">Leave blank if there is no end date.</span>
+          </label>
+        </div>
+        <label for="rescheduleRemarks">Reason / remarks <span class="field-hint">Optional</span>
+          <textarea id="rescheduleRemarks" rows="3" placeholder="Add a short explanation for the schedule change..."></textarea>
+        </label>
+        <div id="rescheduleError" class="error-message" role="alert" hidden></div>
+        <div class="reschedule-actions">
+          <button type="button" id="cancelRescheduleBtn" class="btn-secondary">Cancel</button>
+          <button type="submit" id="confirmRescheduleBtn" class="btn-primary">Confirm Reschedule</button>
+        </div>
+      </form>
     </div>
   </div>
 
