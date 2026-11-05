@@ -31,6 +31,11 @@ let completedPage = 1;
 
 const $ = id => document.getElementById(id);
 
+// Normalize status values returned from Sheets/API (including stray spaces).
+function activityStatus(activity) {
+  return String(activity?.status ?? '').trim().toUpperCase();
+}
+
 function escapeHTML(value) {
   return String(value ?? '').replace(/[&<>"']/g, char => ({
     '&': '&amp;',
@@ -286,14 +291,14 @@ function renderSummary() {
   $('totalCount').textContent = activities.length;
 
   $('scheduledCount').textContent =
-    activities.filter(a => a.status === 'SCHEDULED' || a.status === 'MOVED').length;
+    activities.filter(a => ['SCHEDULED', 'MOVED'].includes(activityStatus(a))).length;
 
-  const completedTotal = activities.filter(a => a.status === 'DONE').length;
+  const completedTotal = activities.filter(a => activityStatus(a) === 'DONE').length;
   $('completedCount').textContent = completedTotal;
   if ($('completedNavCount')) $('completedNavCount').textContent = completedTotal;
 
   $('cancelledCount').textContent =
-    activities.filter(a => a.status === 'CANCELLED').length;
+    activities.filter(a => activityStatus(a) === 'CANCELLED').length;
 }
 
 /* =========================================================
@@ -347,7 +352,7 @@ function renderCalendar() {
         start &&
         start <= dateString &&
         dateString <= end &&
-        activity.status !== 'CANCELLED'
+        activityStatus(activity) !== 'CANCELLED'
       );
     });
 
@@ -367,7 +372,7 @@ function renderCalendar() {
         const color = clusterColor(splitMultiValue(activity.cluster)[0]);
 
         html += `
-          <div class="event ${activity.status === 'DONE' ? 'done' : ''}"
+          <div class="event ${activityStatus(activity) === 'DONE' ? 'done' : ''}"
                style="background:${color}"
                data-activity-id="${escapeHTML(activity.id)}">
             <div class="event-title">${escapeHTML(activity.title)}</div>
@@ -425,7 +430,7 @@ function renderDailyActivities() {
       start &&
       start <= selectedDate &&
       selectedDate <= end &&
-      activity.status !== 'CANCELLED'
+      activityStatus(activity) !== 'CANCELLED'
     );
   });
 
@@ -468,8 +473,8 @@ function renderUpcoming() {
   const list = activities
     .filter(activity =>
       (activity.startDate || activity.date) >= today &&
-      activity.status !== 'DONE' &&
-      activity.status !== 'CANCELLED'
+      activityStatus(activity) !== 'DONE' &&
+      activityStatus(activity) !== 'CANCELLED'
     )
     .sort((a, b) =>
       (a.startDate || a.date).localeCompare(b.startDate || b.date)
@@ -498,7 +503,7 @@ function renderUpcoming() {
 
 function renderCompleted() {
   const list = activities
-    .filter(activity => activity.status === 'DONE')
+    .filter(activity => activityStatus(activity) === 'DONE')
     .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
 
   $('recentCompleted').innerHTML = list.slice(0, 3).length
@@ -571,7 +576,7 @@ function renderAllActivities() {
   const query = String($('activitySearch')?.value || '').trim().toLowerCase();
   // Completed activities are shown in their own tab, not in the active list.
   const list = [...activities]
-    .filter(a => a.status !== 'DONE')
+    .filter(a => activityStatus(a) !== 'DONE')
     .sort((a,b) => String(b.startDate || b.date || '').localeCompare(String(a.startDate || a.date || '')))
     .filter(a => [a.title, a.cluster, a.responsibleFocal, a.status].join(' ').toLowerCase().includes(query));
   const totalPages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
@@ -583,7 +588,7 @@ function renderAllActivities() {
 
 function renderCompletedActivities() {
   const list = [...activities]
-    .filter(a => a.status === 'DONE')
+    .filter(a => activityStatus(a) === 'DONE')
     .sort((a,b) => String(b.startDate || b.date || '').localeCompare(String(a.startDate || a.date || '')));
   const totalPages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
   completedPage = Math.min(completedPage, totalPages);
@@ -800,21 +805,21 @@ function renderActivityActions(activity) {
     actions.push(`<button class="btn-primary" data-action="mark-so-drafted">Mark as Drafted</button>`);
   }
 
-  if (activity.status !== 'CANCELLED') {
+  if (activityStatus(activity) !== 'CANCELLED') {
     actions.push(`<button class="btn-secondary" data-action="edit">Edit</button>`);
     actions.push(`<button class="btn-secondary" data-action="reschedule">Reschedule</button>`);
   }
 
-  if (activity.status === 'SCHEDULED' || activity.status === 'MOVED') {
+  if (['SCHEDULED', 'MOVED'].includes(activityStatus(activity))) {
     actions.push(`<button class="btn-primary" data-action="done">Mark Done</button>`);
     actions.push(`<button class="btn-secondary" data-action="cancel">Cancel Activity</button>`);
   }
 
-  if (activity.status === 'DONE') {
+  if (activityStatus(activity) === 'DONE') {
     actions.push(`<button class="btn-secondary" data-action="reopen">Reopen</button>`);
   }
 
-  if (activity.status === 'CANCELLED') {
+  if (activityStatus(activity) === 'CANCELLED') {
     actions.push(`<button class="btn-primary" data-action="restore">Restore</button>`);
   }
 
