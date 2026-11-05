@@ -15,58 +15,88 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
   <style>
-    /* Modern in-app reschedule dialog */
-    .reschedule-content {
-      width: min(100%, 500px);
-      padding: 26px;
-      border: 1px solid #e2e8f0;
-      border-radius: 18px;
-      box-shadow: 0 24px 70px rgba(15, 23, 42, .24);
+    /* Unified modern modal system */
+    .modal { backdrop-filter: blur(5px); background: rgba(15,23,42,.58); z-index: 1000; }
+    .modal-content {
+      width: min(100%, 560px); max-height: min(88vh, 900px); overflow-y: auto;
+      padding: 26px; border: 1px solid #e2e8f0; border-radius: 18px;
+      background: #fff; box-shadow: 0 24px 70px rgba(15,23,42,.24);
+      animation: modalRise .18s ease-out;
     }
-    .reschedule-intro {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin: 2px 0 20px;
-      padding: 12px 14px;
-      border: 1px solid #dbeafe;
-      border-radius: 12px;
-      background: #eff6ff;
+    .modal-wide { width: min(100%, 760px); }
+    .modal-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:20px; }
+    .modal-heading h2 { margin:0; color:#173b68; font-size:19px; font-weight:800; }
+    .modal-heading p { display:block !important; margin:5px 0 0; color:#64748b; font-size:11px; font-weight:400; }
+    .close-btn { flex:0 0 34px; display:grid; place-items:center; border:0; background:#f1f5f9; width:34px; height:34px; border-radius:50%; color:#475569; font-size:22px; cursor:pointer; }
+    .close-btn:hover { background:#e2e8f0; }
+    .modal-actions { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:9px; margin-top:22px; }
+    .modal-actions button, .reschedule-actions button, .action-modal-actions button { min-height:40px; padding:10px 16px; border-radius:9px; font-weight:700; }
+    .modal-content form { gap:14px; }
+    .modal-content input:not([type=checkbox]), .modal-content select, .modal-content textarea { border-radius:10px; }
+    .modal-content input:focus, .modal-content select:focus, .modal-content textarea:focus { outline:none; border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,.12); }
+    .activity-detail { color:#334155; font-size:12px; line-height:1.55; }
+    .activity-detail h3 { color:#0f172a; font-size:15px; margin:0 0 14px; }
+    .activity-detail p { margin:8px 0; }
+    .activity-detail strong { color:#1e293b; }
+    @keyframes modalRise { from { opacity:0; transform:translateY(8px) scale(.99); } to { opacity:1; transform:translateY(0) scale(1); } }
+
+    /* Reschedule form */
+    .reschedule-content { width:min(100%,500px); }
+    .reschedule-intro, .action-modal-intro, .history-intro {
+      display:flex; align-items:center; gap:12px; margin:2px 0 20px; padding:12px 14px;
+      border:1px solid #dbeafe; border-radius:12px; background:#eff6ff;
     }
-    .reschedule-icon {
-      display: grid;
-      place-items: center;
-      flex: 0 0 38px;
-      width: 38px;
-      height: 38px;
-      border-radius: 11px;
-      background: #dbeafe;
-      color: #1d4ed8;
-      font-size: 19px;
+    .reschedule-icon, .action-modal-icon, .history-modal-icon {
+      display:grid; place-items:center; flex:0 0 38px; width:38px; height:38px;
+      border-radius:11px; background:#dbeafe; color:#1d4ed8; font-size:19px; font-weight:800;
     }
-    .reschedule-intro strong { display:block; color:#173b68; font-size:13px; }
-    .reschedule-intro span { display:block; color:#64748b; font-size:11px; margin-top:3px; }
-    .reschedule-form { display:flex; flex-direction:column; gap:15px; }
-    .reschedule-form label { display:flex; flex-direction:column; gap:7px; color:#334155; font-size:12px; font-weight:700; }
-    .reschedule-form input,
-    .reschedule-form textarea {
+    .reschedule-intro strong, .action-modal-intro strong, .history-intro strong { display:block; color:#173b68; font-size:13px; }
+    .reschedule-intro span, .action-modal-intro span, .history-intro span { display:block; color:#64748b; font-size:11px; margin-top:3px; }
+    .reschedule-form, .action-modal-form { display:flex; flex-direction:column; gap:15px; }
+    .reschedule-form label, .action-modal-form label { display:flex; flex-direction:column; gap:7px; color:#334155; font-size:12px; font-weight:700; }
+    .reschedule-form input, .reschedule-form textarea, .action-modal-form textarea {
       width:100%; box-sizing:border-box; border:1px solid #cbd5e1; border-radius:10px;
-      background:#fff; color:#0f172a; padding:11px 12px; font:500 13px Inter, sans-serif;
-      outline:none; transition:border-color .15s, box-shadow .15s;
+      background:#fff; color:#0f172a; padding:11px 12px; font:500 13px Inter,sans-serif;
     }
-    .reschedule-form input:focus,
-    .reschedule-form textarea:focus { border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,.12); }
-    .reschedule-form input[type="date"] { min-height:43px; }
-    .reschedule-form textarea { resize:vertical; min-height:78px; }
+    .reschedule-form input[type=date] { min-height:43px; }
+    .reschedule-form textarea, .action-modal-form textarea { resize:vertical; min-height:82px; }
     .reschedule-form .form-row { gap:12px; }
-    .reschedule-form .field-hint { color:#94a3b8; font-size:10px; font-weight:400; }
-    .reschedule-actions { display:flex; justify-content:flex-end; gap:9px; padding-top:5px; }
-    .reschedule-actions button { min-height:40px; padding:10px 16px; border-radius:9px; font-weight:700; }
+    .field-hint { color:#94a3b8; font-size:10px; font-weight:400; }
+    .reschedule-actions, .action-modal-actions { display:flex; justify-content:flex-end; gap:9px; padding-top:5px; }
+
+    /* Confirmation / remarks modal */
+    .action-modal-content { width:min(100%,460px); }
+    .action-modal-message { margin:0 0 16px; padding:12px 14px; border-radius:11px; background:#f8fafc; color:#475569; font-size:12px; line-height:1.55; }
+    .action-modal-icon.danger { background:#fee2e2; color:#b91c1c; }
+    .btn-danger { background:#dc2626 !important; border-color:#dc2626 !important; color:#fff !important; }
+    .btn-danger:hover { background:#b91c1c !important; }
+    .action-modal-error, .modal-error { padding:10px 12px; border-radius:9px; background:#fef2f2; color:#b91c1c; font-size:11px; }
+
+    /* Activity history timeline */
+    .history-content { width:min(100%,560px); }
+    .history-timeline { position:relative; padding:4px 0 4px 8px; }
+    .history-entry { position:relative; display:flex; gap:13px; padding:0 0 20px 5px; }
+    .history-entry:not(:last-child)::before { content:''; position:absolute; left:10px; top:18px; bottom:-1px; width:2px; background:#dbeafe; }
+    .history-dot { z-index:1; flex:0 0 12px; width:12px; height:12px; margin-top:4px; border:3px solid #bfdbfe; border-radius:50%; background:#2563eb; }
+    .history-entry-content { flex:1; min-width:0; padding:0 0 0 3px; }
+    .history-entry-content strong { display:block; color:#1e293b; font-size:12px; }
+    .history-entry-content time, .history-entry-content small { display:block; margin-top:4px; color:#64748b; font-size:10px; }
+    .history-entry-content p { margin:7px 0 0; color:#475569; font-size:11px; line-height:1.5; white-space:pre-wrap; }
+    .modal-empty, .modal-loading { padding:28px 12px; text-align:center; color:#64748b; font-size:12px; }
+    .modal-empty span { display:block; margin-bottom:8px; color:#94a3b8; font-size:24px; }
+    .modal-empty strong { display:block; color:#334155; }
+    .modal-empty p { margin:5px 0 0; font-size:11px; }
+    .loading-spinner { display:inline-block; width:13px; height:13px; margin-right:7px; border:2px solid #dbeafe; border-top-color:#2563eb; border-radius:50%; animation:spin .7s linear infinite; vertical-align:-2px; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+
     @media (max-width:600px) {
-      .reschedule-content { padding:20px; border-radius:17px 17px 0 0; }
+      .modal { padding:10px; align-items:flex-end; }
+      .modal-content { width:100%; max-height:90vh; padding:20px; border-radius:18px 18px 0 0; }
+      .modal-heading h2 { font-size:17px; }
       .reschedule-form .form-row { grid-template-columns:1fr; }
-      .reschedule-actions { flex-direction:column-reverse; }
-      .reschedule-actions button { width:100%; }
+      .reschedule-actions, .action-modal-actions { flex-direction:column-reverse; }
+      .reschedule-actions button, .action-modal-actions button { width:100%; }
+      .modal-actions button { flex:1 1 auto; }
     }
   </style>
 
@@ -410,6 +440,46 @@
     </div>
   </div>
 
+  <!-- Shared action confirmation / remarks modal -->
+  <div id="actionModal" class="modal" aria-hidden="true">
+    <div class="modal-content action-modal-content" role="dialog" aria-modal="true" aria-labelledby="actionModalTitle">
+      <div class="modal-heading">
+        <div><h2 id="actionModalTitle">Confirm action</h2><p id="actionModalSubtitle">Review this change before continuing.</p></div>
+        <button id="closeActionModalBtn" class="close-btn" type="button" aria-label="Close">×</button>
+      </div>
+      <div class="action-modal-intro">
+        <div id="actionModalIcon" class="action-modal-icon" aria-hidden="true">✓</div>
+        <div><strong id="actionModalActivity">Activity</strong><span id="actionModalActivityId">Activity ID</span></div>
+      </div>
+      <p id="actionModalMessage" class="action-modal-message"></p>
+      <form id="actionForm" class="action-modal-form">
+        <label id="actionRemarksGroup"> <span id="actionRemarksLabel">Remarks</span>
+          <textarea id="actionRemarks" rows="3" placeholder="Enter remarks..."></textarea>
+        </label>
+        <div id="actionModalError" class="action-modal-error" role="alert" hidden></div>
+        <div class="action-modal-actions">
+          <button id="cancelActionBtn" type="button" class="btn-secondary">Cancel</button>
+          <button id="confirmActionBtn" type="submit" class="btn-primary">Confirm</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Activity history modal -->
+  <div id="historyModal" class="modal" aria-hidden="true">
+    <div class="modal-content history-content" role="dialog" aria-modal="true" aria-labelledby="historyModalTitle">
+      <div class="modal-heading">
+        <div><h2 id="historyModalTitle">Activity History</h2><p>Recorded changes and actions for this activity.</p></div>
+        <button id="closeHistoryModalBtn" class="close-btn" type="button" aria-label="Close">×</button>
+      </div>
+      <div class="history-intro">
+        <div class="history-modal-icon" aria-hidden="true">◷</div>
+        <div><strong id="historyActivityName">Activity</strong><span id="historyActivityId">Activity ID</span></div>
+      </div>
+      <div id="historyTimeline" class="history-timeline"><div class="modal-loading">Loading activity history...</div></div>
+    </div>
+  </div>
+
   <!-- Completed Activities -->
   <div id="completedModal" class="modal">
     <div class="modal-content modal-wide">
@@ -428,6 +498,6 @@
 
   <div id="toast" class="toast"></div>
 
-  <script src="app.js?v=completed-status-fix-20261105"></script>
+  <script src="app.js?v=all-modern-modals-20261105"></script>
 </body>
 </html>
