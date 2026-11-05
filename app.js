@@ -31,11 +31,6 @@ let completedPage = 1;
 
 const $ = id => document.getElementById(id);
 
-// Normalize status values returned from Sheets/API (including stray spaces).
-function activityStatus(activity) {
-  return String(activity?.status ?? '').trim().toUpperCase();
-}
-
 function escapeHTML(value) {
   return String(value ?? '').replace(/[&<>"']/g, char => ({
     '&': '&amp;',
@@ -291,14 +286,14 @@ function renderSummary() {
   $('totalCount').textContent = activities.length;
 
   $('scheduledCount').textContent =
-    activities.filter(a => ['SCHEDULED', 'MOVED'].includes(activityStatus(a))).length;
+    activities.filter(a => a.status === 'SCHEDULED' || a.status === 'MOVED').length;
 
-  const completedTotal = activities.filter(a => activityStatus(a) === 'DONE').length;
+  const completedTotal = activities.filter(a => a.status === 'DONE').length;
   $('completedCount').textContent = completedTotal;
   if ($('completedNavCount')) $('completedNavCount').textContent = completedTotal;
 
   $('cancelledCount').textContent =
-    activities.filter(a => activityStatus(a) === 'CANCELLED').length;
+    activities.filter(a => a.status === 'CANCELLED').length;
 }
 
 /* =========================================================
@@ -352,7 +347,7 @@ function renderCalendar() {
         start &&
         start <= dateString &&
         dateString <= end &&
-        activityStatus(activity) !== 'CANCELLED'
+        activity.status !== 'CANCELLED'
       );
     });
 
@@ -372,7 +367,7 @@ function renderCalendar() {
         const color = clusterColor(splitMultiValue(activity.cluster)[0]);
 
         html += `
-          <div class="event ${activityStatus(activity) === 'DONE' ? 'done' : ''}"
+          <div class="event ${activity.status === 'DONE' ? 'done' : ''}"
                style="background:${color}"
                data-activity-id="${escapeHTML(activity.id)}">
             <div class="event-title">${escapeHTML(activity.title)}</div>
@@ -430,7 +425,7 @@ function renderDailyActivities() {
       start &&
       start <= selectedDate &&
       selectedDate <= end &&
-      activityStatus(activity) !== 'CANCELLED'
+      activity.status !== 'CANCELLED'
     );
   });
 
@@ -473,8 +468,8 @@ function renderUpcoming() {
   const list = activities
     .filter(activity =>
       (activity.startDate || activity.date) >= today &&
-      activityStatus(activity) !== 'DONE' &&
-      activityStatus(activity) !== 'CANCELLED'
+      activity.status !== 'DONE' &&
+      activity.status !== 'CANCELLED'
     )
     .sort((a, b) =>
       (a.startDate || a.date).localeCompare(b.startDate || b.date)
@@ -503,7 +498,7 @@ function renderUpcoming() {
 
 function renderCompleted() {
   const list = activities
-    .filter(activity => activityStatus(activity) === 'DONE')
+    .filter(activity => activity.status === 'DONE')
     .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
 
   $('recentCompleted').innerHTML = list.slice(0, 3).length
@@ -576,7 +571,7 @@ function renderAllActivities() {
   const query = String($('activitySearch')?.value || '').trim().toLowerCase();
   // Completed activities are shown in their own tab, not in the active list.
   const list = [...activities]
-    .filter(a => activityStatus(a) !== 'DONE')
+    .filter(a => a.status !== 'DONE')
     .sort((a,b) => String(b.startDate || b.date || '').localeCompare(String(a.startDate || a.date || '')))
     .filter(a => [a.title, a.cluster, a.responsibleFocal, a.status].join(' ').toLowerCase().includes(query));
   const totalPages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
@@ -588,7 +583,7 @@ function renderAllActivities() {
 
 function renderCompletedActivities() {
   const list = [...activities]
-    .filter(a => activityStatus(a) === 'DONE')
+    .filter(a => a.status === 'DONE')
     .sort((a,b) => String(b.startDate || b.date || '').localeCompare(String(a.startDate || a.date || '')));
   const totalPages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
   completedPage = Math.min(completedPage, totalPages);
@@ -805,21 +800,21 @@ function renderActivityActions(activity) {
     actions.push(`<button class="btn-primary" data-action="mark-so-drafted">Mark as Drafted</button>`);
   }
 
-  if (activityStatus(activity) !== 'CANCELLED') {
+  if (activity.status !== 'CANCELLED') {
     actions.push(`<button class="btn-secondary" data-action="edit">Edit</button>`);
     actions.push(`<button class="btn-secondary" data-action="reschedule">Reschedule</button>`);
   }
 
-  if (['SCHEDULED', 'MOVED'].includes(activityStatus(activity))) {
+  if (activity.status === 'SCHEDULED' || activity.status === 'MOVED') {
     actions.push(`<button class="btn-primary" data-action="done">Mark Done</button>`);
     actions.push(`<button class="btn-secondary" data-action="cancel">Cancel Activity</button>`);
   }
 
-  if (activityStatus(activity) === 'DONE') {
+  if (activity.status === 'DONE') {
     actions.push(`<button class="btn-secondary" data-action="reopen">Reopen</button>`);
   }
 
-  if (activityStatus(activity) === 'CANCELLED') {
+  if (activity.status === 'CANCELLED') {
     actions.push(`<button class="btn-primary" data-action="restore">Restore</button>`);
   }
 
@@ -831,6 +826,67 @@ function renderActivityActions(activity) {
 
 function closeDetailsModal() {
   $('detailsModal').classList.remove('show');
+}
+
+function openRescheduleModal(activity) {
+  if (!activity) return;
+  $('rescheduleActivityName').textContent = activity.title || 'Untitled activity';
+  $('rescheduleActivityId').textContent = activity.id || '';
+  $('rescheduleStartDate').value = activity.startDate || activity.date || '';
+  $('rescheduleEndDate').value = activity.endDate || '';
+  $('rescheduleEndDate').min = $('rescheduleStartDate').value;
+  $('rescheduleRemarks').value = '';
+  $('rescheduleError').hidden = true;
+  $('rescheduleError').textContent = '';
+  $('rescheduleModal').classList.add('show');
+  $('rescheduleModal').setAttribute('aria-hidden', 'false');
+}
+
+function closeRescheduleModal() {
+  $('rescheduleModal').classList.remove('show');
+  $('rescheduleModal').setAttribute('aria-hidden', 'true');
+}
+
+async function submitReschedule(event) {
+  event.preventDefault();
+  const activity = selectedActivity;
+  if (!activity) return;
+
+  const newDate = $('rescheduleStartDate').value;
+  const newEndDate = $('rescheduleEndDate').value;
+  const remarks = $('rescheduleRemarks').value.trim();
+  const errorBox = $('rescheduleError');
+  const submitButton = $('confirmRescheduleBtn');
+
+  if (!newDate) {
+    errorBox.textContent = 'Please select a new start date.';
+    errorBox.hidden = false;
+    return;
+  }
+  if (newEndDate && newEndDate < newDate) {
+    errorBox.textContent = 'The end date cannot be earlier than the start date.';
+    errorBox.hidden = false;
+    return;
+  }
+
+  submitButton.disabled = true;
+  submitButton.textContent = 'Saving...';
+  errorBox.hidden = true;
+
+  try {
+    await apiRequest('rescheduleActivity', [activity.id, newDate, remarks, newEndDate]);
+    closeRescheduleModal();
+    closeDetailsModal();
+    showToast('Activity rescheduled successfully.');
+    await loadActivities();
+  } catch (error) {
+    errorBox.textContent = error.message || 'Unable to reschedule this activity.';
+    errorBox.hidden = false;
+    console.error(error);
+  } finally {
+    submitButton.disabled = false;
+    submitButton.textContent = 'Confirm Reschedule';
+  }
 }
 
 /* =========================================================
@@ -883,22 +939,8 @@ async function performActivityAction(action) {
     }
 
     if (action === 'reschedule') {
-      const newDate = prompt('New start date (YYYY-MM-DD):', activity.startDate || activity.date);
-      if (!newDate) return;
-
-      const newEndDate = prompt(
-        'New end date (YYYY-MM-DD), or leave blank:',
-        activity.endDate || ''
-      );
-
-      if (newEndDate === null) return;
-
-      const remarks = prompt('Reason for rescheduling (optional):') || '';
-
-      result = await apiRequest(
-        'rescheduleActivity',
-        [id, newDate, remarks, newEndDate]
-      );
+      openRescheduleModal(activity);
+      return;
     }
 
     if (action === 'delete') {
@@ -953,6 +995,21 @@ function bindEvents() {
   $('activityForm').addEventListener('submit', saveActivity);
 
   $('closeDetailsBtn').addEventListener('click', closeDetailsModal);
+  $('closeRescheduleBtn').addEventListener('click', closeRescheduleModal);
+  $('cancelRescheduleBtn').addEventListener('click', closeRescheduleModal);
+  $('rescheduleForm').addEventListener('submit', submitReschedule);
+  $('rescheduleStartDate').addEventListener('change', () => {
+    $('rescheduleEndDate').min = $('rescheduleStartDate').value;
+    if ($('rescheduleEndDate').value && $('rescheduleEndDate').value < $('rescheduleStartDate').value) {
+      $('rescheduleEndDate').value = $('rescheduleStartDate').value;
+    }
+  });
+  $('rescheduleModal').addEventListener('click', event => {
+    if (event.target === $('rescheduleModal')) closeRescheduleModal();
+  });
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && $('rescheduleModal').classList.contains('show')) closeRescheduleModal();
+  });
   $('closeCompletedBtn').addEventListener('click', () => {
     $('completedModal').classList.remove('show');
   });
