@@ -31,7 +31,6 @@
         <strong id="liveTime">--:--:--</strong>
         <span id="liveDate">PHILIPPINE STANDARD TIME</span>
       </div>
-      <button class="btn-primary" id="addActivityBtn">＋ Add Activity</button>
     </div>
   </header>
 
@@ -52,8 +51,8 @@
     <nav class="app-tabs" aria-label="Main navigation">
       <button class="app-tab active" data-view="calendar"><span>▦</span><b>Calendar</b></button>
       <button class="app-tab" data-view="activities"><span>☷</span><b>Activities</b></button>
+      <button class="app-tab" data-view="completed"><span>✓</span><b>Completed</b><em id="completedNavCount">0</em></button>
       <button class="app-tab" data-view="special-orders"><span>▣</span><b>Special Orders</b><em id="specialOrderNavCount">0</em></button>
-      <button class="app-tab" data-view="add"><span>＋</span><b>Add Activity</b></button>
     </nav>
 
     <section class="summary-grid view-calendar">
@@ -175,11 +174,20 @@
 
 
     <section id="activitiesView" class="content-view" hidden>
-      <div class="view-heading"><div><h2>All Activities</h2><p>Browse and search recorded activities.</p></div>
-        <input id="activitySearch" class="search-input" type="search" placeholder="Search activity, cluster or focal..." aria-label="Search activities">
+      <div class="view-heading"><div><h2>Activities</h2><p>Browse and manage active activities.</p></div>
+        <div class="view-heading-actions" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end;">
+          <input id="activitySearch" class="search-input" type="search" placeholder="Search activity, cluster or focal..." aria-label="Search activities">
+          <button class="btn-primary" id="addActivityBtn">＋ Add Activity</button>
+        </div>
       </div>
       <div id="allActivitiesList" class="records-grid"></div>
       <div id="activitiesPagination" class="pagination-bar" aria-label="Activities pagination"></div>
+    </section>
+
+    <section id="completedView" class="content-view" hidden>
+      <div class="view-heading"><div><h2>Completed Activities</h2><p>Activities marked as done and retained in the records.</p></div></div>
+      <div id="completedActivitiesList" class="records-grid"></div>
+      <div id="completedPagination" class="pagination-bar" aria-label="Completed activities pagination"></div>
     </section>
 
     <section id="specialOrdersView" class="content-view" hidden>
