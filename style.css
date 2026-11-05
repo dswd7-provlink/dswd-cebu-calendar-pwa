@@ -1519,17 +1519,9 @@ label:has(#officeFilter) {
    Keep dswdbackground.png in the repository root.
 ========================================================= */
 body {
-  background-color: #f5f7fb;
-  background-image:
-    linear-gradient(
-      rgba(245, 247, 251, 0.60),
-      rgba(245, 247, 251, 0.60)
-    ),
-    url("./dswdbackground.png");
-  background-size: cover;
-  background-position: center center;
-  background-repeat: no-repeat;
-  background-attachment: fixed;
+  background: #f1f5f9 !important;
+  background-image: none !important;
+  background-attachment: scroll;
 }
 
 @media (max-width: 768px) {
