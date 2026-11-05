@@ -27,6 +27,7 @@ let selectedCluster = '';
 const PAGE_SIZE = 10;
 let activitiesPage = 1;
 let specialOrdersPage = 1;
+let completedPage = 1;
 
 const $ = id => document.getElementById(id);
 
@@ -287,8 +288,9 @@ function renderSummary() {
   $('scheduledCount').textContent =
     activities.filter(a => a.status === 'SCHEDULED' || a.status === 'MOVED').length;
 
-  $('completedCount').textContent =
-    activities.filter(a => a.status === 'DONE').length;
+  const completedTotal = activities.filter(a => a.status === 'DONE').length;
+  $('completedCount').textContent = completedTotal;
+  if ($('completedNavCount')) $('completedNavCount').textContent = completedTotal;
 
   $('cancelledCount').textContent =
     activities.filter(a => a.status === 'CANCELLED').length;
@@ -567,13 +569,29 @@ function renderPagination(containerId, totalItems, currentPage, onPageChange) {
 
 function renderAllActivities() {
   const query = String($('activitySearch')?.value || '').trim().toLowerCase();
-  const list = [...activities].sort((a,b) => String(b.startDate || b.date || '').localeCompare(String(a.startDate || a.date || '')))
+  // Completed activities are shown in their own tab, not in the active list.
+  const list = [...activities]
+    .filter(a => a.status !== 'DONE')
+    .sort((a,b) => String(b.startDate || b.date || '').localeCompare(String(a.startDate || a.date || '')))
     .filter(a => [a.title, a.cluster, a.responsibleFocal, a.status].join(' ').toLowerCase().includes(query));
   const totalPages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
   activitiesPage = Math.min(activitiesPage, totalPages);
   const pageItems = list.slice((activitiesPage - 1) * PAGE_SIZE, activitiesPage * PAGE_SIZE);
-  $('allActivitiesList').innerHTML = list.length ? pageItems.map(a => activityCard(a)).join('') : '<div class="empty-state">No matching activities found.</div>';
+  $('allActivitiesList').innerHTML = list.length ? pageItems.map(a => activityCard(a)).join('') : '<div class="empty-state">No active activities found.</div>';
   renderPagination('activitiesPagination', list.length, activitiesPage, page => { activitiesPage = page; renderAllActivities(); });
+}
+
+function renderCompletedActivities() {
+  const list = [...activities]
+    .filter(a => a.status === 'DONE')
+    .sort((a,b) => String(b.startDate || b.date || '').localeCompare(String(a.startDate || a.date || '')));
+  const totalPages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
+  completedPage = Math.min(completedPage, totalPages);
+  const pageItems = list.slice((completedPage - 1) * PAGE_SIZE, completedPage * PAGE_SIZE);
+  $('completedActivitiesList').innerHTML = list.length
+    ? pageItems.map(a => activityCard(a)).join('')
+    : '<div class="empty-state">No completed activities yet.</div>';
+  renderPagination('completedPagination', list.length, completedPage, page => { completedPage = page; renderCompletedActivities(); });
 }
 
 async function uploadSpecialOrderForActivity(activityId, file) {
@@ -627,9 +645,10 @@ function switchView(view) {
   document.querySelectorAll('.view-calendar').forEach(el => el.hidden = view !== 'calendar');
   $('activitiesView').hidden = view !== 'activities';
   $('specialOrdersView').hidden = view !== 'special-orders';
+  $('completedView').hidden = view !== 'completed';
   if (view === 'activities') renderAllActivities();
+  if (view === 'completed') renderCompletedActivities();
   if (view === 'special-orders') renderSpecialOrders();
-  if (view === 'add') openActivityModal();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -644,6 +663,7 @@ function renderAll() {
   renderUpcoming();
   renderCompleted();
   renderAllActivities();
+  renderCompletedActivities();
   renderSpecialOrders();
 }
 
@@ -916,9 +936,13 @@ function bindEvents() {
   $('activitySearch').addEventListener('input', () => { activitiesPage = 1; renderAllActivities(); });
   ['soClusterFilter', 'soMonthFilter', 'soFocalFilter'].forEach(id => $(id).addEventListener('change', () => { specialOrdersPage = 1; renderSpecialOrders(); }));
   $('clearSoFilters').addEventListener('click', () => { $('soClusterFilter').value = ''; $('soMonthFilter').value = ''; $('soFocalFilter').value = ''; specialOrdersPage = 1; renderSpecialOrders(); });
+  $('completedActivitiesList').addEventListener('click', event => {
+    const card = event.target.closest('[data-activity-id]');
+    if (card) openDetails(card.dataset.activityId);
+  });
+
   ['allActivitiesList', 'specialOrdersList'].forEach(id => $(id).addEventListener('click', event => { const upload = event.target.closest('[data-so-upload]'); if (upload) { event.stopPropagation(); $('specialOrderFileInput').dataset.activityId = upload.dataset.soUpload; $('specialOrderFileInput').click(); return; } if (event.target.closest('a')) return; const card = event.target.closest('[data-activity-id]'); if (card) openDetails(card.dataset.activityId); }));
   $('specialOrderFileInput').addEventListener('change', event => { const file = event.target.files && event.target.files[0]; if (file) uploadSpecialOrderForActivity(event.target.dataset.activityId, file); });
-  $('addActivityBtn').addEventListener('click', () => openActivityModal());
   $('closeModalBtn').addEventListener('click', closeActivityModal);
   $('cancelModalBtn').addEventListener('click', closeActivityModal);
   $('activityForm').addEventListener('submit', saveActivity);
@@ -928,9 +952,8 @@ function bindEvents() {
     $('completedModal').classList.remove('show');
   });
 
-  $('showCompletedBtn').addEventListener('click', () => {
-    $('completedModal').classList.add('show');
-  });
+  $('showCompletedBtn').addEventListener('click', () => switchView('completed'));
+  $('addActivityBtn').addEventListener('click', () => openActivityModal());
 
   $('prevMonthBtn').addEventListener('click', () => changeMonth(-1));
   $('nextMonthBtn').addEventListener('click', () => changeMonth(1));
