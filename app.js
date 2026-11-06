@@ -118,7 +118,7 @@ function getActivityDateKey(activity) {
   if (!rawDate) return '';
 
   // Keep date-only values in YYYY-MM-DD form without timezone conversion.
-  const match = String(rawDate).match(/^(\\d{4})-(\\d{2})-(\\d{2})/);
+  const match = String(rawDate).match(/^(\d{4})-(\d{2})-(\d{2})/);
   if (match) return `${match[1]}-${match[2]}-${match[3]}`;
 
   const parsed = new Date(rawDate);
@@ -139,44 +139,32 @@ function getActivityDateKey(activity) {
   return `${values.year}-${values.month}-${values.day}`;
 }
 
-/**
- * Shared sorter for every activity list and filtered view.
- * 1) Today first
- * 2) Upcoming dates, nearest first
- * 3) Past dates, most recent first
- * Activities with missing/invalid dates are placed last.
- * Same-day records retain their original order.
- */
-function sortActivitiesByDate(activitiesToSort) {
+function getActivityEndKey(a) {
+  return getActivityDateKey({date: a.endDate || a.startDate || a.date});
+}
+function isActivityOverdue(a) {
+  const status = String(a.status || '').toUpperCase();
+  const end = getActivityEndKey(a);
+  return !!end && end < getPhilippineTodayKey() && !['DONE','CANCELLED'].includes(status);
+}
+function getDisplayStatus(a) {
+  return isActivityOverdue(a) ? 'OVERDUE' : (a.status || 'SCHEDULED');
+}
+function sortActivitiesByDate(items, mode = 'active') {
   const today = getPhilippineTodayKey();
-
-  return [...(activitiesToSort || [])]
-    .map((activity, index) => ({
-      activity,
-      index,
-      dateKey: getActivityDateKey(activity)
-    }))
-    .sort((a, b) => {
-      if (!a.dateKey && !b.dateKey) return a.index - b.index;
-      if (!a.dateKey) return 1;
-      if (!b.dateKey) return -1;
-
-      const groupA = a.dateKey === today ? 0 : (a.dateKey > today ? 1 : 2);
-      const groupB = b.dateKey === today ? 0 : (b.dateKey > today ? 1 : 2);
-
-      if (groupA !== groupB) return groupA - groupB;
-
-      if (groupA === 1) {
-        return a.dateKey.localeCompare(b.dateKey) || a.index - b.index;
-      }
-
-      if (groupA === 2) {
-        return b.dateKey.localeCompare(a.dateKey) || a.index - b.index;
-      }
-
-      return a.index - b.index;
-    })
-    .map(item => item.activity);
+  return [...(items || [])].sort((a,b) => {
+    const da = getActivityDateKey(a), db = getActivityDateKey(b);
+    if (!da || !db) return da ? -1 : db ? 1 : 0;
+    if (mode === 'completed') return db.localeCompare(da);
+    const group = (item, date) => {
+      if (date <= today && (getActivityEndKey(item) || date) >= today) return 0;
+      if (date > today) return 1;
+      return isActivityOverdue(item) ? 2 : 3;
+    };
+    const ga = group(a,da), gb = group(b,db);
+    if (ga !== gb) return ga - gb;
+    return ga <= 1 ? da.localeCompare(db) : db.localeCompare(da);
+  });
 }
 
 function parseDate(value) {
@@ -540,8 +528,8 @@ function renderDailyActivities() {
         ${escapeHTML(splitMultiValue(activity.cluster).join(', '))}
       </span>
       <div>
-        <span class="status-badge ${statusClass(activity.status)}">
-          ${escapeHTML(activity.status)}
+        <span class="status-badge ${statusClass(getDisplayStatus(activity))}">
+          ${escapeHTML(getDisplayStatus(activity))}
         </span>
       </div>
     </div>
@@ -583,7 +571,7 @@ function renderUpcoming() {
 
 function renderCompleted() {
   const list = sortActivitiesByDate(
-    activities.filter(activity => activity.status === 'DONE')
+    activities.filter(activity => activity.status === 'DONE'), 'completed'
   );
 
   $('recentCompleted').innerHTML = list.slice(0, 3).length
@@ -621,7 +609,7 @@ function requiresSpecialOrder(activity) {
 function activityCard(activity, showSO = false) {
   return `<article class="record-card" data-activity-id="${escapeHTML(activity.id)}">
     <div class="record-card-top"><span class="cluster-chip" style="--cluster:${clusterColor(splitMultiValue(activity.cluster)[0])}">${escapeHTML(splitMultiValue(activity.cluster).join(', ') || 'No cluster')}</span>
-      ${showSO ? `<span class="so-required-chip">SPECIAL ORDER REQUIRED</span><span class="status-badge so-upload-status ${String(activity.specialOrderStatus || 'FOR PREPARATION').toLowerCase().replace(/\\s+/g, '-') }">${escapeHTML(activity.specialOrderStatus || 'FOR PREPARATION')}</span>` : `<span class="status-badge ${statusClass(activity.status)}">${escapeHTML(activity.status || 'SCHEDULED')}</span>`}</div>
+      ${showSO && isActivityOverdue(activity) ? `<span class="status-badge status-overdue">OVERDUE</span>` : ''}${showSO ? `<span class="so-required-chip">SPECIAL ORDER REQUIRED</span><span class="status-badge so-upload-status ${String(activity.specialOrderStatus || 'FOR PREPARATION').toLowerCase().replace(/\\s+/g, '-') }">${escapeHTML(activity.specialOrderStatus || 'FOR PREPARATION')}</span>` : `<span class="status-badge ${statusClass(getDisplayStatus(activity))}">${escapeHTML(getDisplayStatus(activity))}</span>`}</div>
     <h3>${escapeHTML(activity.title || 'Untitled activity')}</h3>
     <p class="record-date">${escapeHTML(prettyDate(activity.startDate || activity.date))}${activity.endDate ? ' – ' + escapeHTML(prettyDate(activity.endDate)) : ''}</p>
     <div class="record-meta"><span>♙ ${escapeHTML(splitMultiValue(activity.responsibleFocal).join(', ') || 'Focal not specified')}</span></div>
@@ -652,13 +640,41 @@ function renderPagination(containerId, totalItems, currentPage, onPageChange) {
   }));
 }
 
+function ensureOverdueControls() {
+  if ($('overdueOnlyFilter')) return;
+  const list = $('allActivitiesList');
+  if (!list || !list.parentNode) return;
+  const label = document.createElement('label');
+  label.style.cssText = 'display:inline-flex;align-items:center;gap:8px;margin:8px 0 14px;font-size:13px;font-weight:600;cursor:pointer';
+  label.innerHTML = '<input id="overdueOnlyFilter" type="checkbox"> Show overdue activities only';
+  list.parentNode.insertBefore(label,list);
+  label.querySelector('input').addEventListener('change',()=>{ activitiesPage=1; renderAllActivities(); });
+}
+function updateOverdueKPI() {
+  const total = activities.filter(isActivityOverdue).length;
+  let card = $('overdueKpi');
+  if (!card) {
+    const anchor = $('cancelledCount')?.parentElement;
+    if (!anchor || !anchor.parentElement) return;
+    card = anchor.cloneNode(true);
+    card.id = 'overdueKpi';
+    card.querySelectorAll('[id]').forEach(el => el.removeAttribute('id'));
+    card.style.borderLeft = '3px solid #e47d23';
+    anchor.parentElement.appendChild(card);
+  }
+  card.innerHTML = '<div style="font-size:12px;font-weight:700;color:#9a4b08">OVERDUE ACTIVITIES</div>' +
+    '<div style="font-size:28px;font-weight:800;color:#b45309">' + total + '</div>';
+}
 function renderAllActivities() {
+  ensureOverdueControls();
   const query = String($('activitySearch')?.value || '').trim().toLowerCase();
+  const overdueOnly = $('overdueOnlyFilter')?.checked || false;
   // Completed activities are shown in their own tab, not in the active list.
   const list = sortActivitiesByDate(
     activities
-      .filter(a => a.status !== 'DONE')
-      .filter(a => [a.title, a.cluster, a.responsibleFocal, a.status].join(' ').toLowerCase().includes(query))
+      .filter(a => a.status !== 'DONE' && a.status !== 'CANCELLED')
+      .filter(a => !overdueOnly || isActivityOverdue(a))
+      .filter(a => [a.title, a.cluster, a.responsibleFocal, getDisplayStatus(a)].join(' ').toLowerCase().includes(query))
   );
   const totalPages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
   activitiesPage = Math.min(activitiesPage, totalPages);
@@ -669,7 +685,7 @@ function renderAllActivities() {
 
 function renderCompletedActivities() {
   const list = sortActivitiesByDate(
-    activities.filter(a => a.status === 'DONE')
+    activities.filter(a => a.status === 'DONE'), 'completed'
   );
   const totalPages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
   completedPage = Math.min(completedPage, totalPages);
@@ -732,9 +748,9 @@ function switchView(view) {
   $('activitiesView').hidden = view !== 'activities';
   $('specialOrdersView').hidden = view !== 'special-orders';
   $('completedView').hidden = view !== 'completed';
-  if (view === 'activities') renderAllActivities();
-  if (view === 'completed') renderCompletedActivities();
-  if (view === 'special-orders') renderSpecialOrders();
+  if (view === 'activities') { activitiesPage=1; renderAllActivities(); }
+  if (view === 'completed') { completedPage=1; renderCompletedActivities(); }
+  if (view === 'special-orders') { specialOrdersPage=1; renderSpecialOrders(); }
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -744,6 +760,7 @@ function switchView(view) {
 
 function renderAll() {
   renderSummary();
+  updateOverdueKPI();
   renderCalendar();
   renderDailyActivities();
   renderUpcoming();
@@ -867,8 +884,8 @@ function openDetails(id) {
       <p><strong>Name:</strong> ${escapeHTML(activity.description || 'None')}</p>
       <p><strong>Purpose:</strong> ${escapeHTML(activity.purpose || 'None')}</p>
       <p><strong>Status:</strong>
-        <span class="status-badge ${statusClass(activity.status)}">
-          ${escapeHTML(activity.status)}
+        <span class="status-badge ${statusClass(getDisplayStatus(activity))}">
+          ${escapeHTML(getDisplayStatus(activity))}
         </span>
       </p>
       <p><strong>Remarks:</strong> ${escapeHTML(activity.remarks || 'None')}</p>
@@ -1230,6 +1247,7 @@ function bindEvents() {
   $('historyModal').addEventListener('click', event => {
     if (event.target === $('historyModal')) closeHistoryModal();
   });
+  if (!$('overdueStyle')) { const style=document.createElement('style'); style.id='overdueStyle'; style.textContent='.status-badge.status-overdue{background:#fff0df!important;color:#a34100!important;border:1px solid #f2ba7c!important}'; document.head.appendChild(style); }
   document.addEventListener('keydown', event => {
     if (event.key !== 'Escape') return;
     if ($('rescheduleModal').classList.contains('show')) closeRescheduleModal();
