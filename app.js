@@ -89,6 +89,96 @@ function isoDate(date) {
   return `${y}-${m}-${d}`;
 }
 
+/* =========================================================
+   PHILIPPINE DATE + SHARED ACTIVITY SORTING
+   Priority: TODAY -> UPCOMING -> PAST
+   Today: Asia/Manila (GMT+8)
+========================================================= */
+
+function getPhilippineTodayKey() {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Manila',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).formatToParts(new Date());
+
+  const values = {};
+  parts.forEach(part => {
+    if (part.type !== 'literal') values[part.type] = part.value;
+  });
+
+  return `${values.year}-${values.month}-${values.day}`;
+}
+
+function getActivityDateKey(activity) {
+  if (!activity) return '';
+
+  const rawDate = activity.startDate || activity.date || activity.DATE || '';
+  if (!rawDate) return '';
+
+  // Keep date-only values in YYYY-MM-DD form without timezone conversion.
+  const match = String(rawDate).match(/^(\\d{4})-(\\d{2})-(\\d{2})/);
+  if (match) return `${match[1]}-${match[2]}-${match[3]}`;
+
+  const parsed = new Date(rawDate);
+  if (Number.isNaN(parsed.getTime())) return '';
+
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Manila',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).formatToParts(parsed);
+
+  const values = {};
+  parts.forEach(part => {
+    if (part.type !== 'literal') values[part.type] = part.value;
+  });
+
+  return `${values.year}-${values.month}-${values.day}`;
+}
+
+/**
+ * Shared sorter for every activity list and filtered view.
+ * 1) Today first
+ * 2) Upcoming dates, nearest first
+ * 3) Past dates, most recent first
+ * Activities with missing/invalid dates are placed last.
+ * Same-day records retain their original order.
+ */
+function sortActivitiesByDate(activitiesToSort) {
+  const today = getPhilippineTodayKey();
+
+  return [...(activitiesToSort || [])]
+    .map((activity, index) => ({
+      activity,
+      index,
+      dateKey: getActivityDateKey(activity)
+    }))
+    .sort((a, b) => {
+      if (!a.dateKey && !b.dateKey) return a.index - b.index;
+      if (!a.dateKey) return 1;
+      if (!b.dateKey) return -1;
+
+      const groupA = a.dateKey === today ? 0 : (a.dateKey > today ? 1 : 2);
+      const groupB = b.dateKey === today ? 0 : (b.dateKey > today ? 1 : 2);
+
+      if (groupA !== groupB) return groupA - groupB;
+
+      if (groupA === 1) {
+        return a.dateKey.localeCompare(b.dateKey) || a.index - b.index;
+      }
+
+      if (groupA === 2) {
+        return b.dateKey.localeCompare(a.dateKey) || a.index - b.index;
+      }
+
+      return a.index - b.index;
+    })
+    .map(item => item.activity);
+}
+
 function parseDate(value) {
   if (!value) return null;
   const parts = String(value).split('-').map(Number);
@@ -324,7 +414,7 @@ function renderCalendar() {
 
   const firstDay = new Date(year, month, 1);
   const startDate = new Date(year, month, 1 - firstDay.getDay());
-  const today = isoDate(new Date());
+  const today = getPhilippineTodayKey();
   const filtered = getFilteredActivities();
 
   let html = '';
@@ -339,7 +429,7 @@ function renderCalendar() {
     const isToday = dateString === today;
     const isSelected = dateString === selectedDate;
 
-    const dayActivities = filtered.filter(activity => {
+    const dayActivities = sortActivitiesByDate(filtered.filter(activity => {
       const start = activity.startDate || activity.date;
       const end = activity.endDate || start;
 
@@ -349,7 +439,7 @@ function renderCalendar() {
         dateString <= end &&
         activity.status !== 'CANCELLED'
       );
-    });
+    }));
 
     html += `
       <div class="day-cell
@@ -417,7 +507,7 @@ function renderDailyActivities() {
 
   $('selectedDateLabel').textContent = prettyDate(selectedDate);
 
-  const list = getFilteredActivities().filter(activity => {
+  const list = sortActivitiesByDate(getFilteredActivities().filter(activity => {
     const start = activity.startDate || activity.date;
     const end = activity.endDate || start;
 
@@ -427,7 +517,7 @@ function renderDailyActivities() {
       selectedDate <= end &&
       activity.status !== 'CANCELLED'
     );
-  });
+  }));
 
   if (!list.length) {
     container.innerHTML =
@@ -463,18 +553,13 @@ function renderDailyActivities() {
 ========================================================= */
 
 function renderUpcoming() {
-  const today = isoDate(new Date());
+  const today = getPhilippineTodayKey();
 
-  const list = activities
-    .filter(activity =>
-      (activity.startDate || activity.date) >= today &&
-      activity.status !== 'DONE' &&
-      activity.status !== 'CANCELLED'
-    )
-    .sort((a, b) =>
-      (a.startDate || a.date).localeCompare(b.startDate || b.date)
-    )
-    .slice(0, 6);
+  const list = sortActivitiesByDate(activities.filter(activity =>
+    getActivityDateKey(activity) >= today &&
+    activity.status !== 'DONE' &&
+    activity.status !== 'CANCELLED'
+  )).slice(0, 6);
 
   $('upcomingList').innerHTML = list.length
     ? list.map(activity => `
@@ -497,9 +582,9 @@ function renderUpcoming() {
 ========================================================= */
 
 function renderCompleted() {
-  const list = activities
-    .filter(activity => activity.status === 'DONE')
-    .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  const list = sortActivitiesByDate(
+    activities.filter(activity => activity.status === 'DONE')
+  );
 
   $('recentCompleted').innerHTML = list.slice(0, 3).length
     ? list.slice(0, 3).map(activity => `
@@ -570,10 +655,11 @@ function renderPagination(containerId, totalItems, currentPage, onPageChange) {
 function renderAllActivities() {
   const query = String($('activitySearch')?.value || '').trim().toLowerCase();
   // Completed activities are shown in their own tab, not in the active list.
-  const list = [...activities]
-    .filter(a => a.status !== 'DONE')
-    .sort((a,b) => String(b.startDate || b.date || '').localeCompare(String(a.startDate || a.date || '')))
-    .filter(a => [a.title, a.cluster, a.responsibleFocal, a.status].join(' ').toLowerCase().includes(query));
+  const list = sortActivitiesByDate(
+    activities
+      .filter(a => a.status !== 'DONE')
+      .filter(a => [a.title, a.cluster, a.responsibleFocal, a.status].join(' ').toLowerCase().includes(query))
+  );
   const totalPages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
   activitiesPage = Math.min(activitiesPage, totalPages);
   const pageItems = list.slice((activitiesPage - 1) * PAGE_SIZE, activitiesPage * PAGE_SIZE);
@@ -582,9 +668,9 @@ function renderAllActivities() {
 }
 
 function renderCompletedActivities() {
-  const list = [...activities]
-    .filter(a => a.status === 'DONE')
-    .sort((a,b) => String(b.startDate || b.date || '').localeCompare(String(a.startDate || a.date || '')));
+  const list = sortActivitiesByDate(
+    activities.filter(a => a.status === 'DONE')
+  );
   const totalPages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
   completedPage = Math.min(completedPage, totalPages);
   const pageItems = list.slice((completedPage - 1) * PAGE_SIZE, completedPage * PAGE_SIZE);
@@ -626,12 +712,12 @@ function renderSpecialOrders() {
   const cluster = $('soClusterFilter').value;
   const month = $('soMonthFilter').value;
   const focal = $('soFocalFilter').value;
-  const list = required.filter(a => {
+  const list = sortActivitiesByDate(required.filter(a => {
     const date = a.startDate || a.date || '';
     return (!cluster || hasMultiValue(a.cluster, cluster)) &&
       (!month || date.slice(0,7) === month) &&
       (!focal || hasMultiValue(a.responsibleFocal, focal));
-  }).sort((a,b) => String(a.startDate || a.date || '').localeCompare(String(b.startDate || b.date || '')));
+  }));
   $('soResultCount').textContent = `${list.length} ${list.length === 1 ? 'activity' : 'activities'}`;
   const totalPages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
   specialOrdersPage = Math.min(specialOrdersPage, totalPages);
@@ -1162,7 +1248,7 @@ function bindEvents() {
 
   $('todayBtn').addEventListener('click', () => {
     currentMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-    selectedDate = isoDate(new Date());
+    selectedDate = getPhilippineTodayKey();
     renderAll();
   });
 
@@ -1230,7 +1316,7 @@ async function initializeApp() {
   updateClock();
   setInterval(updateClock, 1000);
 
-  selectedDate = isoDate(new Date());
+  selectedDate = getPhilippineTodayKey();
 
   try {
     await checkConnection();
