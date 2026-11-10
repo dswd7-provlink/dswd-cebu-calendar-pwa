@@ -139,6 +139,7 @@
     <nav class="app-tabs" aria-label="Main navigation">
       <button class="app-tab active" data-view="calendar"><span>▦</span><b>Calendar</b></button>
       <button class="app-tab" data-view="activities"><span>☷</span><b>Activities</b></button>
+      <button class="app-tab overdue-nav-tab" data-view="overdue"><span>!</span><b>Overdue</b><em id="overdueNavCount">0</em></button>
       <button class="app-tab" data-view="completed"><span>✓</span><b>Completed</b><em id="completedNavCount">0</em></button>
       <button class="app-tab" data-view="special-orders"><span>▣</span><b>Special Orders</b><em id="specialOrderNavCount">0</em></button>
     </nav>
@@ -269,6 +270,17 @@
       </div>
       <div id="allActivitiesList" class="records-grid"></div>
       <div id="activitiesPagination" class="pagination-bar" aria-label="Activities pagination"></div>
+    </section>
+
+    <section id="overdueView" class="content-view" hidden>
+      <div class="view-heading">
+        <div>
+          <h2>Overdue Activities</h2>
+          <p>Activities whose scheduled end date has passed and are not yet completed or cancelled.</p>
+        </div>
+      </div>
+      <div id="overdueActivitiesList" class="records-grid"></div>
+      <div id="overduePagination" class="pagination-bar" aria-label="Overdue activities pagination"></div>
     </section>
 
     <section id="completedView" class="content-view" hidden>
