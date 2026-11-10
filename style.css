@@ -1717,3 +1717,23 @@ body {
 .page-btn:disabled { opacity:.4; cursor:not-allowed; }
 .page-ellipsis { padding:0 3px; color:#94a3b8; }
 @media (max-width:520px) { .pagination-bar { align-items:flex-start; flex-direction:column; } .pagination-controls { justify-content:flex-start; width:100%; } .page-btn { min-width:32px; height:32px; padding:0 8px; } }
+
+/* OVERDUE ACTIVITIES TAB */
+.status-badge.status-overdue {
+  background: #fff0df !important;
+  color: #a34100 !important;
+  border: 1px solid #f2ba7c !important;
+}
+.app-tab.overdue-nav-tab em {
+  background: #fee2e2 !important;
+  color: #b91c1c !important;
+}
+.app-tab.overdue-nav-tab.active {
+  color: #b91c1c !important;
+}
+@media (max-width: 600px) {
+  .app-tab.overdue-nav-tab em {
+    top: 0;
+    right: 5px;
+  }
+}
