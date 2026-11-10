@@ -28,6 +28,7 @@ const PAGE_SIZE = 10;
 let activitiesPage = 1;
 let specialOrdersPage = 1;
 let completedPage = 1;
+let overduePage = 1;
 
 const $ = id => document.getElementById(id);
 
@@ -143,7 +144,7 @@ function getActivityEndKey(a) {
   return getActivityDateKey({date: a.endDate || a.startDate || a.date});
 }
 function isActivityOverdue(a) {
-  const status = String(a.status || '').toUpperCase();
+  const status = String(a.status || '').trim().toUpperCase();
   const end = getActivityEndKey(a);
   return !!end && end < getPhilippineTodayKey() && !['DONE','CANCELLED'].includes(status);
 }
@@ -369,6 +370,7 @@ function renderSummary() {
   const completedTotal = activities.filter(a => a.status === 'DONE').length;
   $('completedCount').textContent = completedTotal;
   if ($('completedNavCount')) $('completedNavCount').textContent = completedTotal;
+  if ($('overdueNavCount')) $('overdueNavCount').textContent = activities.filter(isActivityOverdue).length;
 
   $('cancelledCount').textContent =
     activities.filter(a => a.status === 'CANCELLED').length;
@@ -696,6 +698,31 @@ function renderCompletedActivities() {
   renderPagination('completedPagination', list.length, completedPage, page => { completedPage = page; renderCompletedActivities(); });
 }
 
+
+function renderOverdueActivities() {
+  const list = activities
+    .filter(isActivityOverdue)
+    .sort((a, b) => {
+      const da = getActivityEndKey(a);
+      const db = getActivityEndKey(b);
+      // Oldest missed end date first: the longest-overdue activity appears first.
+      return db.localeCompare(da);
+    });
+
+  const totalPages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
+  overduePage = Math.min(overduePage, totalPages);
+  const pageItems = list.slice((overduePage - 1) * PAGE_SIZE, overduePage * PAGE_SIZE);
+
+  $('overdueActivitiesList').innerHTML = list.length
+    ? pageItems.map(a => activityCard(a)).join('')
+    : '<div class="empty-state">No overdue activities. Great work!</div>';
+
+  renderPagination('overduePagination', list.length, overduePage, page => {
+    overduePage = page;
+    renderOverdueActivities();
+  });
+}
+
 async function uploadSpecialOrderForActivity(activityId, file) {
   if (!file) return;
   if (file.type !== 'application/pdf' && !/\.pdf$/i.test(file.name)) { showToast('Please select a PDF file.'); return; }
@@ -748,8 +775,10 @@ function switchView(view) {
   $('activitiesView').hidden = view !== 'activities';
   $('specialOrdersView').hidden = view !== 'special-orders';
   $('completedView').hidden = view !== 'completed';
+  $('overdueView').hidden = view !== 'overdue';
   if (view === 'activities') { activitiesPage=1; renderAllActivities(); }
   if (view === 'completed') { completedPage=1; renderCompletedActivities(); }
+  if (view === 'overdue') { overduePage=1; renderOverdueActivities(); }
   if (view === 'special-orders') { specialOrdersPage=1; renderSpecialOrders(); }
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -767,6 +796,7 @@ function renderAll() {
   renderCompleted();
   renderAllActivities();
   renderCompletedActivities();
+  renderOverdueActivities();
   renderSpecialOrders();
 }
 
@@ -1214,6 +1244,11 @@ function bindEvents() {
   ['soClusterFilter', 'soMonthFilter', 'soFocalFilter'].forEach(id => $(id).addEventListener('change', () => { specialOrdersPage = 1; renderSpecialOrders(); }));
   $('clearSoFilters').addEventListener('click', () => { $('soClusterFilter').value = ''; $('soMonthFilter').value = ''; $('soFocalFilter').value = ''; specialOrdersPage = 1; renderSpecialOrders(); });
   $('completedActivitiesList').addEventListener('click', event => {
+    const card = event.target.closest('[data-activity-id]');
+    if (card) openDetails(card.dataset.activityId);
+  });
+
+  $('overdueActivitiesList').addEventListener('click', event => {
     const card = event.target.closest('[data-activity-id]');
     if (card) openDetails(card.dataset.activityId);
   });
