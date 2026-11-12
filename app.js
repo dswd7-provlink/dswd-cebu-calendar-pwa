@@ -4,8 +4,7 @@
    Frontend application
 ========================================================= */
 
-const API_URL = 'https://dswd-cebu-calendar-api.cebu-bdm-api.workers.dev';
-
+const API_URL = 'https://dswd7provlink.mkcdev.workers.dev';
 const CLUSTER_COLORS = {
   'CLUSTER 1A': '#2563EB',
   'CLUSTER 1B': '#0D9488',
